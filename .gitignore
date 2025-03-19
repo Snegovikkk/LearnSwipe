@@ -2,20 +2,44 @@
 /node_modules
 /.pnp
 .pnp.js
+jspm_packages/
 
 # testing
 /coverage
+*.lcov
+.nyc_output
 
 # next.js
 /.next/
 /out/
+out
 
 # production
 /build
+build/Release
 
 # misc
 .DS_Store
 *.pem
+.env
+.cache
+.parcel-cache
+.temp
+.docusaurus
+.serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.vscode-test
+
+# logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
 
 # debug
 npm-debug.log*
@@ -33,4 +57,14 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts 
+next-env.d.ts
+
+# npm/yarn
+.npm
+.eslintcache
+.stylelintcache
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*

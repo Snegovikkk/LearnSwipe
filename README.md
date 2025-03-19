@@ -152,4 +152,4 @@ yarn dev
 
 ## Лицензия
 
-MIT 
+MIT
