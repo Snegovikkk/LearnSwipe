@@ -333,14 +333,14 @@ export default function CreateTestPage() {
                         <div 
                           key={oIndex}
                           className={`flex items-start ${
-                            String(oIndex) === question.correctAnswer 
+                            option.isCorrect 
                               ? 'text-green-700'
                               : ''
                           }`}
                         >
                           <span className="mr-2 font-medium">{String.fromCharCode(65 + oIndex)}.</span>
-                          <span>{option}</span>
-                          {String(oIndex) === question.correctAnswer && (
+                          <span>{option.text}</span>
+                          {option.isCorrect && (
                             <FaCheck className="ml-2 text-green-500 mt-1" />
                           )}
                         </div>
