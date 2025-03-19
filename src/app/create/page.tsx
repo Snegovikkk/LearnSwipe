@@ -67,8 +67,8 @@ export default function CreateTestPage() {
     setError('');
     
     try {
-      const topics = await analyzeText(text);
-      setSuggestedTopics(topics || []);
+      const result = await analyzeText(text);
+      setSuggestedTopics(result?.topics || []);
     } catch (err: any) {
       console.error('Ошибка анализа текста:', err);
       setError(err.message || 'Не удалось проанализировать текст');
@@ -93,8 +93,8 @@ export default function CreateTestPage() {
     setError('');
     
     try {
-      const questions = await generateTest(content, title);
-      setGeneratedQuestions(questions || []);
+      const result = await generateTest(content, title);
+      setGeneratedQuestions(result?.questions || []);
       setStep('review');
     } catch (err: any) {
       console.error('Ошибка генерации теста:', err);
