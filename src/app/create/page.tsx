@@ -57,7 +57,6 @@ export default function CreateTestPage() {
   };
 
   // Анализ текста для получения предложенных тем
-  // ИСПРАВЛЕНО: правильная обработка типов
   const handleAnalyzeText = async (text: string = content) => {
     if (text.length < 100) {
       setError('Текст слишком короткий для анализа. Минимум 100 символов.');
@@ -68,8 +67,12 @@ export default function CreateTestPage() {
     setError('');
     
     try {
-      const result = await analyzeText(text);
-      setSuggestedTopics(result?.topics || []);
+      // Получаем результат в виде объекта с массивом тем
+      const analysisResult = await analyzeText(text);
+      // Извлекаем topics из результата, или используем пустой массив в случае null
+      const topicsArray: string[] = analysisResult?.topics || [];
+      // Устанавливаем темы в состояние
+      setSuggestedTopics(topicsArray);
     } catch (err: any) {
       console.error('Ошибка анализа текста:', err);
       setError(err.message || 'Не удалось проанализировать текст');
@@ -95,8 +98,12 @@ export default function CreateTestPage() {
     setError('');
     
     try {
-      const result = await generateTest(content, title);
-      setGeneratedQuestions(result?.questions || []);
+      // Получаем результат теста с вопросами
+      const testResult = await generateTest(content, title);
+      // Извлекаем вопросы из результата или используем пустой массив
+      const questionsArray: TestQuestion[] = testResult?.questions || [];
+      // Устанавливаем вопросы в состояние
+      setGeneratedQuestions(questionsArray);
       setStep('review');
     } catch (err: any) {
       console.error('Ошибка генерации теста:', err);
