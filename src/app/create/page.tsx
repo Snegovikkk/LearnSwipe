@@ -12,7 +12,7 @@ import { TestQuestion } from '@/lib/deepseek';
 export default function CreateTestPage() {
   const { user } = useAuth();
   const { createTest } = useTests();
-  const { analyzeText, generateTest, loading: aiLoading, error: aiError } = useAI();
+  const { analyzeText, generateTest, isLoading: aiLoading, error: aiError } = useAI();
   const router = useRouter();
   
   const [title, setTitle] = useState('');
