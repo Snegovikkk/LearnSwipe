@@ -213,6 +213,41 @@ export default function useTests() {
     }
   };
 
+  // Получение результатов пользователя по конкретному тесту
+  const getUserResultsByTestId = async (userId: string, testId: string): Promise<TestResult[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Получаем результаты пользователя по конкретному тесту
+      const { data, error } = await supabase
+        .from('test_results')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('test_id', testId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error("Ошибка SQL:", error);
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.log("Нет результатов по данному тесту, возвращаем пустой массив");
+        return [];
+      }
+      
+      return data;
+    } catch (error: any) {
+      console.error("Ошибка при получении результатов по тесту:", error);
+      setError(error.message || "Не удалось получить результаты по тесту");
+      
+      // В случае ошибки возвращаем пустой массив
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
@@ -222,6 +257,7 @@ export default function useTests() {
     createTest,
     deleteTest,
     saveTestResult,
-    getUserResults
+    getUserResults,
+    getUserResultsByTestId
   };
 } 

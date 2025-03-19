@@ -89,6 +89,12 @@ export default function Navbar() {
                       Мой профиль
                     </Link>
                     <Link
+                      href="/dashboard"
+                      className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                    >
+                      Аналитика
+                    </Link>
+                    <Link
                       href="/profile/tests"
                       className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
                     >
@@ -220,6 +226,12 @@ export default function Navbar() {
                 className="block px-4 py-2 text-base font-medium text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100"
               >
                 Мой профиль
+              </Link>
+              <Link
+                href="/dashboard"
+                className="block px-4 py-2 text-base font-medium text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100"
+              >
+                Аналитика
               </Link>
               <Link
                 href="/profile/tests"

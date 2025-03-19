@@ -40,7 +40,7 @@ export default function Home() {
           {/* Добавляем заметную кнопку создания теста */}
           <Link 
             href="/auth/signup"
-            className="inline-block px-8 py-4 mb-8 text-xl bg-primary-100 text-neutral-900 font-medium rounded-lg hover:bg-primary-200 transition-colors shadow-md hover:shadow-lg"
+            className="inline-block px-8 py-4 mb-8 text-xl bg-primary-100 text-black font-medium rounded-lg hover:bg-primary-200 transition-colors shadow-md hover:shadow-lg"
           >
             Начать создавать тесты
           </Link>
@@ -48,7 +48,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link 
               href="/create" 
-              className="px-6 py-3 bg-white text-primary-600 font-medium rounded-lg hover:bg-neutral-100 transition-colors"
+              className="px-6 py-3 bg-white text-black font-medium rounded-lg hover:bg-neutral-100 transition-colors"
             >
               Создать тест
             </Link>
