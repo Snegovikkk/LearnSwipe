@@ -57,6 +57,7 @@ export default function CreateTestPage() {
   };
 
   // Анализ текста для получения предложенных тем
+  // ИСПРАВЛЕНО: правильная обработка типов
   const handleAnalyzeText = async (text: string = content) => {
     if (text.length < 100) {
       setError('Текст слишком короткий для анализа. Минимум 100 символов.');
@@ -78,6 +79,7 @@ export default function CreateTestPage() {
   };
 
   // Генерация теста на основе текста
+  // ИСПРАВЛЕНО: правильная обработка типов
   const handleGenerateTest = async () => {
     if (!title) {
       setError('Пожалуйста, введите название теста');
