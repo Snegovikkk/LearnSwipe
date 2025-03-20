@@ -137,9 +137,9 @@ export default function ProfilePage() {
         
         {/* Дополнительные действия */}
         <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200 mb-10">
-          <h2 className="text-xl font-semibold mb-6">Популярные действия</h2>
+          <h2 className="text-xl font-semibold mb-6">Дополнительные возможности</h2>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 gap-4">
             <Link 
               href="/tests"
               className="flex items-center p-3 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
@@ -158,16 +158,6 @@ export default function ProfilePage() {
                 <FaHistory className="w-4 h-4" />
               </div>
               <span>История прохождений</span>
-            </Link>
-            
-            <Link 
-              href="/profile/settings"
-              className="flex items-center p-3 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
-            >
-              <div className="h-10 w-10 bg-neutral-100 text-neutral-600 rounded-full flex items-center justify-center mr-3">
-                <FaCog className="w-4 h-4" />
-              </div>
-              <span>Настройки профиля</span>
             </Link>
           </div>
         </div>
