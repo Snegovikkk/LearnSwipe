@@ -12,13 +12,54 @@ export interface TestQuestion {
   explanation: string;
 }
 
+// Информация о статусе DeepSeek API
+export interface DeepSeekStatus {
+  isAvailable: boolean;
+  balance?: number;
+  error?: string;
+  lastChecked: Date;
+}
+
 // Конфигурация DeepSeek API
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-672304a894b94decb4524c0faf3c3684';
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
-// Функция для запроса к DeepSeek API
-async function callDeepSeekAPI(messages: any[]): Promise<string> {
+// Функция для проверки статуса API DeepSeek
+export async function checkDeepSeekStatus(): Promise<DeepSeekStatus> {
   try {
+    // Отправляем небольшой запрос для проверки доступности API
+    const messages = [
+      { role: "system", content: "This is a test message to check API status." },
+      { role: "user", content: "Hello, are you available?" }
+    ];
+    
+    // Попытка выполнить простой запрос
+    await callDeepSeekAPI(messages, true);
+    
+    return {
+      isAvailable: true,
+      lastChecked: new Date()
+    };
+  } catch (error) {
+    console.error("Ошибка при проверке статуса DeepSeek API:", error);
+    
+    // Пытаемся извлечь информацию об ошибке
+    let errorMessage = error instanceof Error ? error.message : String(error);
+    
+    return {
+      isAvailable: false,
+      error: errorMessage,
+      lastChecked: new Date()
+    };
+  }
+}
+
+// Функция для запроса к DeepSeek API
+async function callDeepSeekAPI(messages: any[], isStatusCheck: boolean = false): Promise<string> {
+  try {
+    // Если это проверка статуса, используем минимальное количество токенов
+    const maxTokens = isStatusCheck ? 10 : 4000;
+    
     const response = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',
       headers: {
@@ -29,7 +70,7 @@ async function callDeepSeekAPI(messages: any[]): Promise<string> {
         model: 'deepseek-chat',
         messages: messages,
         temperature: 0.7,
-        max_tokens: 4000
+        max_tokens: maxTokens
       })
     });
 
@@ -506,5 +547,6 @@ export async function analyzeText(text: string): Promise<string[]> {
 
 export default {
   generateTest,
-  analyzeText
+  analyzeText,
+  checkDeepSeekStatus
 }; 
