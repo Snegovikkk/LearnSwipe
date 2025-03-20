@@ -112,7 +112,7 @@ const AdminPage = () => {
 
   return (
     <ProtectedRoute>
-      <div className="container mx-auto px-4 py-8 max-w-5xl">
+      <div className="container mx-auto px-4 py-8 max-w-5xl relative z-0">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Панель администратора</h1>
           <Link href="/" className="px-4 py-2 bg-neutral-100 hover:bg-neutral-200 rounded text-sm text-neutral-700 transition-colors">
@@ -136,7 +136,7 @@ const AdminPage = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {adminTools.map((tool) => (
-            <Link href={tool.path} key={tool.id} className="block group">
+            <Link href={tool.path} key={tool.id} className="block group relative z-10">
               <div className="p-6 border border-neutral-200 rounded-lg hover:border-primary-300 hover:shadow-md transition-all bg-white">
                 <div className="flex items-start space-x-4">
                   <div className={`w-12 h-12 rounded-full ${tool.bgColor} text-white flex items-center justify-center flex-shrink-0`}>

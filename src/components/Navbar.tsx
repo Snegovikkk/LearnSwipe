@@ -5,6 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import useAuth from '@/hooks/useAuth';
 
+// Функция для проверки прав администратора
+const isAdmin = (email: string | null | undefined) => {
+  const adminEmails = ['admin@test.com', 'admin@learnswipe.com', 'dima@test.ru']; // Добавьте сюда свою почту
+  return email && adminEmails.includes(email);
+};
+
 export default function Navbar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
@@ -16,6 +22,9 @@ export default function Navbar() {
     setIsMenuOpen(false);
     setIsUserMenuOpen(false);
   }, [pathname]);
+
+  // Проверяем, является ли текущий пользователь администратором
+  const userIsAdmin = isAdmin(user?.email);
 
   return (
     <nav className="bg-white shadow-sm">
@@ -100,6 +109,14 @@ export default function Navbar() {
                     >
                       Мои тесты
                     </Link>
+                    {userIsAdmin && (
+                      <Link
+                        href="/admin"
+                        className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                      >
+                        Панель администратора
+                      </Link>
+                    )}
                     <button
                       onClick={() => signOut()}
                       className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
@@ -239,6 +256,14 @@ export default function Navbar() {
               >
                 Мои тесты
               </Link>
+              {userIsAdmin && (
+                <Link
+                  href="/admin"
+                  className="block px-4 py-2 text-base font-medium text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100"
+                >
+                  Панель администратора
+                </Link>
+              )}
               <button
                 onClick={() => signOut()}
                 className="block w-full text-left px-4 py-2 text-base font-medium text-neutral-600 hover:text-neutral-800 hover:bg-neutral-100"
