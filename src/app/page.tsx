@@ -1,7 +1,12 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { useState } from 'react';
 
 export default function Home() {
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+
   return (
     <div className="bg-white">
       {/* Минималистичная hero-секция */}
@@ -81,46 +86,80 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Демонстрация с макетом теста */}
+      {/* Интерактивная секция "О Lume" */}
       <section className="py-16 bg-neutral-50">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <div className="mb-6">
-                <span className="inline-block bg-primary-100 text-primary-600 px-3 py-1 text-xs font-medium rounded-full">Пример</span>
-                <h2 className="text-xl font-semibold mt-2">История Древнего Рима</h2>
-              </div>
-              
-              <div className="p-4 border border-neutral-200 rounded-lg mb-4">
-                <p className="font-medium mb-2">Кто был первым императором Рима?</p>
-                <div className="space-y-2">
-                  <div className="flex items-center">
-                    <div className="w-5 h-5 flex items-center justify-center border border-primary-300 rounded-full mr-2">
-                      <span className="text-sm">A</span>
-                    </div>
-                    <p className="text-sm">Юлий Цезарь</p>
+            <button 
+              onClick={() => setIsAboutOpen(!isAboutOpen)} 
+              className="mx-auto flex items-center justify-center px-8 py-4 bg-white border border-neutral-200 rounded-lg shadow-sm hover:shadow-md transition-all text-lg font-medium text-neutral-900 mb-6"
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                className={`h-5 w-5 mr-2 text-primary-500 transition-transform duration-300 ${isAboutOpen ? 'rotate-180' : ''}`} 
+                viewBox="0 0 20 20" 
+                fill="currentColor"
+              >
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+              О Lume
+            </button>
+            
+            {isAboutOpen && (
+              <div className="bg-white rounded-lg shadow-md p-6 animate-fadeIn">
+                <h2 className="text-2xl font-semibold mb-6 text-center">Почему Lume?</h2>
+                
+                <div className="space-y-8">
+                  <div>
+                    <h3 className="text-xl font-medium mb-3 flex items-center text-primary-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      Уникальная технология
+                    </h3>
+                    <p className="text-neutral-700">
+                      Lume использует передовые алгоритмы ИИ для анализа текста и создания релевантных тестов. Наша технология интеллектуально выделяет ключевые концепции и факты, генерируя вопросы, которые действительно проверяют и закрепляют знания.
+                    </p>
                   </div>
-                  <div className="flex items-center bg-primary-50 rounded-md p-1">
-                    <div className="w-5 h-5 flex items-center justify-center bg-primary-500 text-white rounded-full mr-2">
-                      <span className="text-sm">Б</span>
-                    </div>
-                    <p className="text-sm font-medium">Октавиан Август</p>
+                  
+                  <div>
+                    <h3 className="text-xl font-medium mb-3 flex items-center text-primary-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
+                      </svg>
+                      Гибкость и персонализация
+                    </h3>
+                    <p className="text-neutral-700">
+                      Настраивайте сложность, типы вопросов и формат тестов под свои потребности. Lume адаптируется под ваш стиль обучения, независимо от того, изучаете ли вы языки, науки или готовитесь к экзаменам.
+                    </p>
                   </div>
-                  <div className="flex items-center">
-                    <div className="w-5 h-5 flex items-center justify-center border border-primary-300 rounded-full mr-2">
-                      <span className="text-sm">В</span>
-                    </div>
-                    <p className="text-sm">Марк Антоний</p>
+                  
+                  <div>
+                    <h3 className="text-xl font-medium mb-3 flex items-center text-primary-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M6.672 1.911a1 1 0 10-1.932.518l.259.966a1 1 0 001.932-.518l-.26-.966zM2.429 4.74a1 1 0 10-.517 1.932l.966.259a1 1 0 00.517-1.932l-.966-.26zm8.814-.569a1 1 0 00-1.415-1.414l-.707.707a1 1 0 101.415 1.415l.707-.708zm-7.071 7.072l.707-.707A1 1 0 003.465 9.12l-.708.707a1 1 0 001.415 1.415zm3.2-5.171a1 1 0 00-1.3 1.3l4 10a1 1 0 001.823.075l1.38-2.759 3.018 3.02a1 1 0 001.414-1.415l-3.019-3.02 2.76-1.379a1 1 0 00-.076-1.822l-10-4z" clipRule="evenodd" />
+                      </svg>
+                      Экономия времени
+                    </h3>
+                    <p className="text-neutral-700">
+                      То, что раньше занимало часы, теперь можно сделать за минуты. Lume автоматизирует самый трудоемкий процесс в создании учебных материалов, позволяя вам сосредоточиться на обучении и достижении результатов.
+                    </p>
                   </div>
                 </div>
+                
+                <div className="mt-8 text-center">
+                  <p className="text-lg font-medium text-primary-700 mb-6">
+                    Lume — это не просто инструмент для создания тестов, это революция в том, как мы учимся
+                  </p>
+                  <Link
+                    href="/create"
+                    className="inline-block btn-primary px-8 py-3 text-base shadow-sm hover:shadow-md transition-all"
+                  >
+                    Попробовать сейчас
+                  </Link>
+                </div>
               </div>
-              
-              <div className="text-center">
-                <Link href="/create" className="text-primary-600 text-sm font-medium hover:underline">
-                  Создать свой тест →
-                </Link>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </section>
@@ -147,4 +186,22 @@ export default function Home() {
       </section>
     </div>
   );
+}
+
+// Стиль для анимации появления блока
+const style = `
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+`;
+
+// Добавляем стиль в head документа
+if (typeof document !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.innerHTML = style;
+  document.head.appendChild(styleElement);
 } 
