@@ -59,7 +59,8 @@ const Dashboard = () => {
       fair: 0,
       poor: 0
     },
-    skillMap: {} as Record<string, {score: number, count: number, tests: string[]}>
+    skillMap: {} as Record<string, {score: number, count: number, tests: string[]}>,
+    weakestSkills: [] as {topic: string, score: number}[]
   });
 
   // Загрузка результатов тестов пользователя
@@ -134,6 +135,12 @@ const Dashboard = () => {
             skillMap[topic].score = Math.round((skillMap[topic].score / skillMap[topic].count) * 10) / 10;
           });
           
+          // Определяем самые слабые навыки для рекомендаций
+          const weakestSkills = Object.entries(skillMap)
+            .map(([topic, data]) => ({ topic, score: data.score }))
+            .sort((a, b) => a.score - b.score)
+            .slice(0, 3);
+          
           setStats({
             totalTests: userResults.length,
             averageScore: Math.round(avgScore * 10) / 10,
@@ -145,7 +152,8 @@ const Dashboard = () => {
               score: r.score
             })),
             scoreCategories: scoreCategories,
-            skillMap: skillMap
+            skillMap: skillMap,
+            weakestSkills: weakestSkills
           });
         }
       } catch (error) {
@@ -491,6 +499,121 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
+            </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-200 mb-8">
+              <h2 className="text-xl font-bold mb-4">Рекомендации по обучению</h2>
+              
+              {stats.weakestSkills.length > 0 ? (
+                <div className="space-y-6">
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <h3 className="font-medium text-amber-800 mb-2">Области для улучшения</h3>
+                    <p className="text-sm text-amber-700 mb-3">
+                      На основе ваших результатов, мы рекомендуем сосредоточиться на следующих темах:
+                    </p>
+                    <div className="space-y-3">
+                      {stats.weakestSkills.map((skill, index) => (
+                        <div key={index} className="flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-800 mr-3">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium text-neutral-700">{skill.topic}</p>
+                            <div className="flex items-center mt-1">
+                              <div className="w-24 bg-neutral-200 rounded-full h-1.5 mr-2">
+                                <div 
+                                  className="h-1.5 rounded-full bg-amber-500" 
+                                  style={{ width: `${skill.score * 10}%` }}
+                                ></div>
+                              </div>
+                              <span className="text-xs text-neutral-500">{skill.score}/10</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 border border-neutral-200 rounded-lg">
+                      <h3 className="font-medium text-neutral-800 mb-2">Стратегия обучения</h3>
+                      <ul className="space-y-2 text-sm text-neutral-600">
+                        <li className="flex items-start">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 mr-2 mt-0.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                            </svg>
+                          </div>
+                          <span>Начните с повторения основных концепций в темах с низкими баллами</span>
+                        </li>
+                        <li className="flex items-start">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 mr-2 mt-0.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                            </svg>
+                          </div>
+                          <span>Проходите тесты регулярно для закрепления знаний</span>
+                        </li>
+                        <li className="flex items-start">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 mr-2 mt-0.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                            </svg>
+                          </div>
+                          <span>Используйте функцию создания новых тестов для углубления в сложные темы</span>
+                        </li>
+                      </ul>
+                    </div>
+                    
+                    <div className="p-4 border border-neutral-200 rounded-lg">
+                      <h3 className="font-medium text-neutral-800 mb-2">Следующие шаги</h3>
+                      <div className="space-y-3 text-sm">
+                        <Link href="/tests" className="flex items-center p-2 hover:bg-neutral-50 rounded-md transition-colors">
+                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                              <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                              <path fillRule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                          <span>Поиск рекомендуемых тестов</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 ml-auto text-neutral-400">
+                            <path fillRule="evenodd" d="M2 10a.75.75 0 01.75-.75h12.59l-2.1-1.95a.75.75 0 111.02-1.1l3.5 3.25a.75.75 0 010 1.1l-3.5 3.25a.75.75 0 11-1.02-1.1l2.1-1.95H2.75A.75.75 0 012 10z" clipRule="evenodd" />
+                          </svg>
+                        </Link>
+                        <Link href="/create" className="flex items-center p-2 hover:bg-neutral-50 rounded-md transition-colors">
+                          <div className="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                              <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                            </svg>
+                          </div>
+                          <span>Создать новый тест по слабой теме</span>
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 ml-auto text-neutral-400">
+                            <path fillRule="evenodd" d="M2 10a.75.75 0 01.75-.75h12.59l-2.1-1.95a.75.75 0 111.02-1.1l3.5 3.25a.75.75 0 010 1.1l-3.5 3.25a.75.75 0 11-1.02-1.1l2.1-1.95H2.75A.75.75 0 012 10z" clipRule="evenodd" />
+                          </svg>
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-neutral-100 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-8 h-8 text-neutral-500">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-neutral-800 mb-2">Недостаточно данных</h3>
+                  <p className="text-neutral-500 max-w-md mx-auto">
+                    Пройдите больше тестов, чтобы получить персонализированные рекомендации по обучению на основе ваших результатов.
+                  </p>
+                  <Link href="/tests" className="mt-4 inline-flex items-center text-primary-600 hover:text-primary-700">
+                    Перейти к тестам
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 ml-1">
+                      <path fillRule="evenodd" d="M2 10a.75.75 0 01.75-.75h12.59l-2.1-1.95a.75.75 0 111.02-1.1l3.5 3.25a.75.75 0 010 1.1l-3.5 3.25a.75.75 0 11-1.02-1.1l2.1-1.95H2.75A.75.75 0 012 10z" clipRule="evenodd" />
+                    </svg>
+                  </Link>
+                </div>
+              )}
             </div>
             
             <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-200">
