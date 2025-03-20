@@ -10,7 +10,7 @@ import Link from 'next/link';
 
 // Функция для проверки прав администратора
 const isAdmin = (email: string | null | undefined) => {
-  const adminEmails = ['admin@test.com', 'admin@learnswipe.com', 'dima@test.ru']; // Добавьте сюда свою почту
+  const adminEmails = ['admin@test.com', 'admin@lume.com', 'dima@test.ru']; // Добавьте сюда свою почту
   return email && adminEmails.includes(email);
 };
 

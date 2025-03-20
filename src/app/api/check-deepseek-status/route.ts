@@ -4,7 +4,7 @@ import { checkDeepSeekStatus } from '@/lib/deepseek';
 import { auth } from '@/auth';
 
 // Список email-адресов администраторов
-const ADMIN_EMAILS = ['admin@test.com', 'admin@learnswipe.com', 'dima@test.ru']; // Добавьте свою почту
+const ADMIN_EMAILS = ['admin@test.com', 'admin@lume.com', 'dima@test.ru']; // Добавьте свою почту
 
 export async function GET() {
   try {

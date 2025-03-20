@@ -7,7 +7,7 @@ import useAuth from '@/hooks/useAuth';
 
 // Функция для проверки прав администратора
 const isAdmin = (email: string | null | undefined) => {
-  const adminEmails = ['admin@test.com', 'admin@learnswipe.com', 'dima@test.ru']; // Добавьте сюда свою почту
+  const adminEmails = ['admin@test.com', 'admin@lume.com', 'dima@test.ru']; // Добавьте сюда свою почту
   return email && adminEmails.includes(email);
 };
 
@@ -33,7 +33,7 @@ export default function Navbar() {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="font-bold text-xl text-primary-600">
-                LearnSwipe
+                Lume
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">

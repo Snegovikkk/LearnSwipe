@@ -1,10 +1,10 @@
-# LearnSwipe
+# Lume
 
 Платформа для создания и прохождения тестов с использованием ИИ для генерации вопросов.
 
 ## Деплой
 
-Приложение развернуто на Vercel и доступно по адресу [learnswipe.vercel.app](https://learnswipe.vercel.app).
+Приложение развернуто на Vercel и доступно по адресу [lume.vercel.app](https://lume.vercel.app).
 Последняя версия: 1.0.1 (исправлены ошибки типизации)
 
 ## Технологии
@@ -37,8 +37,8 @@
 
 1. Клонируйте репозиторий:
 ```bash
-git clone https://github.com/yourusername/learnswipe.git
-cd learnswipe
+git clone https://github.com/yourusername/lume.git
+cd lume
 ```
 
 2. Установите зависимости:
@@ -58,7 +58,7 @@ cp .env.local.example .env.local
 NEXT_PUBLIC_SUPABASE_URL=ваш_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=ваш_supabase_anon_key
 DEEPSEEK_API_KEY=ваш_deepseek_api_key
-NEXT_PUBLIC_APP_NAME=LearnSwipe
+NEXT_PUBLIC_APP_NAME=Lume
 NEXT_PUBLIC_API_URL=/api
 ```
 

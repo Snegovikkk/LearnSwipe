@@ -9,7 +9,7 @@ import Link from 'next/link';
 
 // Функция для проверки прав администратора
 const isAdmin = (email: string | null | undefined) => {
-  const adminEmails = ['admin@test.com', 'admin@learnswipe.com', 'dima@test.ru']; // Добавьте сюда свою почту
+  const adminEmails = ['admin@test.com', 'admin@lume.com', 'dima@test.ru']; // Добавьте сюда свою почту
   return email && adminEmails.includes(email);
 };
 
@@ -129,7 +129,7 @@ const AdminPage = () => {
             </div>
             <div>
               <h2 className="text-lg font-semibold">Добро пожаловать, {session?.user?.name || 'Администратор'}</h2>
-              <p className="text-sm text-neutral-600">Здесь вы можете управлять различными аспектами платформы LearnSwipe</p>
+              <p className="text-sm text-neutral-600">Здесь вы можете управлять различными аспектами платформы Lume</p>
             </div>
           </div>
         </div>

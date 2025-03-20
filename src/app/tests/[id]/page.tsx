@@ -47,7 +47,7 @@ export default function TestDetailPage() {
     if (navigator.share) {
       navigator.share({
         title: `Тест: ${test.title}`,
-        text: `Проверь свои знания! Пройди тест "${test.title}" на LearnSwipe.`,
+        text: `Проверь свои знания! Пройди тест "${test.title}" на Lume.`,
         url: window.location.href,
       }).catch((error) => {
         console.log('Ошибка при попытке поделиться', error);
