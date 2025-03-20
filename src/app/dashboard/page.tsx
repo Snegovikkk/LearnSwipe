@@ -58,7 +58,8 @@ const Dashboard = () => {
       good: 0,
       fair: 0,
       poor: 0
-    }
+    },
+    skillMap: {} as Record<string, {score: number, count: number, tests: string[]}>
   });
 
   // Загрузка результатов тестов пользователя
@@ -101,6 +102,38 @@ const Dashboard = () => {
             poor: scores.filter(score => score < 4).length
           };
           
+          // Создаем карту навыков на основе тем тестов
+          const skillMap: Record<string, {score: number, count: number, tests: string[]}> = {};
+          
+          userResults.forEach(result => {
+            const test = testDetailsMap[result.test_id];
+            if (test) {
+              // Используем заголовок теста в качестве темы/навыка
+              let topic = test.title;
+              
+              // Иногда заголовок может быть слишком длинным, берем первые слова
+              if (topic.length > 25) {
+                const words = topic.split(' ');
+                topic = words.slice(0, 3).join(' ') + '...';
+              }
+              
+              if (!skillMap[topic]) {
+                skillMap[topic] = { score: 0, count: 0, tests: [] };
+              }
+              
+              skillMap[topic].score += result.score;
+              skillMap[topic].count += 1;
+              if (!skillMap[topic].tests.includes(test.id)) {
+                skillMap[topic].tests.push(test.id);
+              }
+            }
+          });
+          
+          // Вычисляем средний балл для каждого навыка
+          Object.keys(skillMap).forEach(topic => {
+            skillMap[topic].score = Math.round((skillMap[topic].score / skillMap[topic].count) * 10) / 10;
+          });
+          
           setStats({
             totalTests: userResults.length,
             averageScore: Math.round(avgScore * 10) / 10,
@@ -111,7 +144,8 @@ const Dashboard = () => {
               date: new Date(r.created_at),
               score: r.score
             })),
-            scoreCategories: scoreCategories
+            scoreCategories: scoreCategories,
+            skillMap: skillMap
           });
         }
       } catch (error) {
@@ -316,6 +350,76 @@ const Dashboard = () => {
           </div>
         )}
         
+        {/* Компонент сравнения результатов */}
+        {results.length > 1 && (
+          <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-200 mb-8">
+            <h2 className="text-xl font-bold mb-4">Сравнение с предыдущими результатами</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h3 className="font-medium text-neutral-700">Прогресс по последним 5 тестам</h3>
+                <div className="flex flex-col space-y-2">
+                  {stats.recentTests.slice(0, 5).map((result, index) => {
+                    const prevScore = index < stats.recentTests.length - 1 ? stats.recentTests[index + 1].score : null;
+                    const difference = prevScore !== null ? result.score - prevScore : 0;
+                    return (
+                      <div key={result.id} className="flex items-center">
+                        <div className="w-32 text-sm text-neutral-600">
+                          {formatDate(result.created_at)}:
+                        </div>
+                        <div className="flex-grow h-3 bg-neutral-200 rounded-full mx-2">
+                          <div 
+                            className="h-3 rounded-full bg-primary-500" 
+                            style={{ width: `${result.score * 10}%` }}
+                          ></div>
+                        </div>
+                        <div className="text-sm font-medium w-16">{result.score}/10</div>
+                        {difference !== 0 && (
+                          <div className={`text-sm font-medium ml-2 ${difference > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {difference > 0 ? `+${difference.toFixed(1)}` : difference.toFixed(1)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-medium text-neutral-700 mb-4">Анализ прогресса</h3>
+                <div className="bg-neutral-50 p-4 rounded-lg">
+                  {stats.scoreOverTime.length > 1 ? (
+                    <>
+                      <p className="text-sm text-neutral-600 mb-2">
+                        {stats.scoreOverTime[0].score > stats.scoreOverTime[stats.scoreOverTime.length - 1].score 
+                          ? 'Ваши результаты улучшаются! Продолжайте в том же духе.' 
+                          : stats.scoreOverTime[0].score < stats.scoreOverTime[stats.scoreOverTime.length - 1].score
+                            ? 'Заметно снижение результатов. Попробуйте уделить больше внимания обучению.' 
+                            : 'Ваши результаты стабильны. Попробуйте новые темы для развития.'}
+                      </p>
+                      <h4 className="font-medium text-neutral-700 mb-2">Рекомендации:</h4>
+                      <ul className="list-disc list-inside text-sm text-neutral-600 space-y-1">
+                        {stats.worstScore < 6 && (
+                          <li>Повторите темы, где ваш результат ниже 6 баллов</li>
+                        )}
+                        {stats.averageScore < 8 && (
+                          <li>Регулярно проходите тесты для улучшения знаний</li>
+                        )}
+                        {stats.scoreOverTime[0].score < stats.averageScore && (
+                          <li>Ваш последний результат ниже среднего - попробуйте пройти тест еще раз</li>
+                        )}
+                        <li>Попробуйте создать собственные тесты по сложным темам</li>
+                      </ul>
+                    </>
+                  ) : (
+                    <p className="text-sm text-neutral-600">
+                      Пройдите больше тестов, чтобы получить рекомендации на основе вашего прогресса.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* График динамики результатов */}
         {results.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
@@ -343,65 +447,112 @@ const Dashboard = () => {
         
         {/* Последние результаты */}
         {results.length > 0 && (
-          <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-200">
-            <h2 className="text-xl font-bold mb-4">Последние результаты</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-neutral-200">
-                <thead className="bg-neutral-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Тест
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Дата
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                      Оценка
-                    </th>
-                    <th className="px-6 py-3 text-right text-sm font-medium">
-                      Действия
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-neutral-200">
-                  {stats.recentTests.map((result) => (
-                    <tr key={result.id} className="hover:bg-neutral-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-neutral-900">
-                          {testDetails[result.test_id]?.title || 'Неизвестный тест'}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-neutral-500">
-                          {formatDate(result.created_at)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                          ${result.score >= 8 
-                            ? 'bg-green-100 text-green-800' 
-                            : result.score >= 6 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-red-100 text-red-800'
-                          }`}
-                        >
-                          {result.score}/10
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <Link 
-                          href={`/dashboard/test/${result.test_id}`}
-                          className="text-primary-600 hover:text-primary-900"
-                        >
-                          Детально
+          <>
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-200 mb-8">
+              <h2 className="text-xl font-bold mb-4">Карта навыков</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                {Object.entries(stats.skillMap).map(([topic, data], index) => (
+                  <div 
+                    key={index} 
+                    className={`p-4 rounded-lg border ${
+                      data.score >= 8 
+                        ? 'border-green-200 bg-green-50' 
+                        : data.score >= 6 
+                        ? 'border-yellow-200 bg-yellow-50' 
+                        : 'border-red-200 bg-red-50'
+                    }`}
+                  >
+                    <h3 className="font-medium text-neutral-800 mb-1">{topic}</h3>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <div className="w-full bg-neutral-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full ${
+                            data.score >= 8 
+                              ? 'bg-green-500' 
+                              : data.score >= 6 
+                              ? 'bg-yellow-500' 
+                              : 'bg-red-500'
+                          }`} 
+                          style={{ width: `${data.score * 10}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium">{data.score}/10</span>
+                    </div>
+                    <div className="text-xs text-neutral-500">
+                      Пройдено тестов: {data.count}
+                    </div>
+                    {data.score < 7 && (
+                      <div className="mt-2 text-xs text-primary-600">
+                        <Link href={`/tests?topic=${encodeURIComponent(topic)}`}>
+                          Найти больше тестов по этой теме →
                         </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+            
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-200">
+              <h2 className="text-xl font-bold mb-4">Последние результаты</h2>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-neutral-200">
+                  <thead className="bg-neutral-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Тест
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Дата
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-neutral-500 uppercase tracking-wider">
+                        Оценка
+                      </th>
+                      <th className="px-6 py-3 text-right text-sm font-medium">
+                        Действия
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-neutral-200">
+                    {stats.recentTests.map((result) => (
+                      <tr key={result.id} className="hover:bg-neutral-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-neutral-900">
+                            {testDetails[result.test_id]?.title || 'Неизвестный тест'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-neutral-500">
+                            {formatDate(result.created_at)}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            ${result.score >= 8 
+                              ? 'bg-green-100 text-green-800' 
+                              : result.score >= 6 
+                              ? 'bg-yellow-100 text-yellow-800' 
+                              : 'bg-red-100 text-red-800'
+                            }`}
+                          >
+                            {result.score}/10
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <Link 
+                            href={`/dashboard/test/${result.test_id}`}
+                            className="text-primary-600 hover:text-primary-900"
+                          >
+                            Детально
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </ProtectedRoute>
