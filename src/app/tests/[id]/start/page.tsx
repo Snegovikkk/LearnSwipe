@@ -15,19 +15,31 @@ interface UserAnswer {
   isCorrect: boolean;
 }
 
+// Состояния страницы теста
+enum TestPageState {
+  LOADING = 'loading',
+  ERROR = 'error',
+  NO_QUESTIONS = 'no_questions',
+  READY = 'ready',
+  RESULT = 'result'
+}
+
 export default function TestStartPage() {
   const router = useRouter();
   const params = useParams();
   const { getTestById, saveTestResult } = useTests();
   const { user } = useAuth();
+  
+  // Основное состояние
+  const [pageState, setPageState] = useState<TestPageState>(TestPageState.LOADING);
   const [test, setTest] = useState<any>(null);
   const [questions, setQuestions] = useState<TestQuestion[]>([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // UI состояния
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
-  const [showResult, setShowResult] = useState(false);
   const [remainingTime, setRemainingTime] = useState(900); // 15 минут в секундах
   const [isTutorialDismissed, setIsTutorialDismissed] = useState(false);
   const [startY, setStartY] = useState(0);
@@ -38,39 +50,125 @@ export default function TestStartPage() {
   
   // Загрузка теста и извлечение вопросов
   useEffect(() => {
+    let mounted = true;
+    
     async function fetchTest() {
       if (!params.id) return;
       
-      setLoading(true);
       try {
         const testData = await getTestById(params.id as string);
+        
+        // Если компонент размонтирован, не обновляем состояние
+        if (!mounted) return;
+        
         if (!testData) {
           setError('Тест не найден');
-        } else {
-          setTest(testData);
+          setPageState(TestPageState.ERROR);
+          return;
+        }
+        
+        setTest(testData);
+        
+        // Извлекаем вопросы из content
+        try {
+          let parsedQuestions: TestQuestion[] = [];
           
-          // Извлекаем вопросы из content
-          try {
-            if (testData.content && typeof testData.content === 'string') {
-              const parsed = JSON.parse(testData.content);
-              if (Array.isArray(parsed)) {
-                setQuestions(parsed);
-              }
-            }
-          } catch (e) {
-            console.error('Ошибка при парсинге вопросов:', e);
-            setError('Не удалось обработать вопросы теста.');
+          // Проверка наличия content
+          if (!testData.content) {
+            setError('Тест не содержит вопросов (content отсутствует)');
+            setPageState(TestPageState.ERROR);
+            return;
           }
+          
+          // Обработка content в зависимости от типа
+          if (typeof testData.content === 'string') {
+            try {
+              // Пытаемся распарсить JSON из строки content
+              const parsed = JSON.parse(testData.content);
+              
+              // Проверяем правильность формата данных
+              if (Array.isArray(parsed)) {
+                // Если content содержит прямой массив вопросов
+                parsedQuestions = parsed;
+              } else if (parsed.questions && Array.isArray(parsed.questions)) {
+                // Если content имеет поле questions с массивом
+                parsedQuestions = parsed.questions;
+              } else {
+                console.error('Неизвестный формат content:', parsed);
+                setError('Неизвестный формат данных теста');
+                setPageState(TestPageState.ERROR);
+                return;
+              }
+            } catch (e) {
+              console.error('Ошибка при парсинге JSON из строки content:', e);
+              setError('Ошибка при обработке данных теста: ' + (e as Error).message);
+              setPageState(TestPageState.ERROR);
+              return;
+            }
+          } else if (typeof testData.content === 'object') {
+            // Если content уже является объектом (например, из Postgres JSONB)
+            if (Array.isArray(testData.content)) {
+              parsedQuestions = testData.content;
+            } else if (testData.content.questions && Array.isArray(testData.content.questions)) {
+              parsedQuestions = testData.content.questions;
+            } else {
+              console.error('Неизвестный формат content (объект):', testData.content);
+              setError('Неизвестный формат данных теста (объект)');
+              setPageState(TestPageState.ERROR);
+              return;
+            }
+          } else {
+            console.error('Неподдерживаемый тип content:', typeof testData.content);
+            setError('Неподдерживаемый формат данных теста');
+            setPageState(TestPageState.ERROR);
+            return;
+          }
+          
+          // Валидация вопросов перед установкой в состояние
+          if (parsedQuestions.length === 0) {
+            console.error('Пустой массив вопросов');
+            setError('Тест не содержит вопросов');
+            setPageState(TestPageState.NO_QUESTIONS);
+            return;
+          }
+          
+          // Проверяем структуру каждого вопроса
+          const validatedQuestions = parsedQuestions.map((q, index) => ({
+            id: q.id || `q${index + 1}`,
+            question: q.question || `Вопрос ${index + 1}`,
+            options: Array.isArray(q.options) 
+              ? q.options.map((opt, optIndex) => ({
+                  id: opt.id || String.fromCharCode(97 + optIndex), // a, b, c, d
+                  text: opt.text || `Вариант ${optIndex + 1}`,
+                  isCorrect: !!opt.isCorrect
+                }))
+              : [],
+            explanation: q.explanation || ''
+          }));
+          
+          // Устанавливаем вопросы в состояние и меняем статус страницы
+          console.log('Успешно загружено и валидировано вопросов:', validatedQuestions.length);
+          setQuestions(validatedQuestions);
+          setPageState(TestPageState.READY);
+        } catch (e) {
+          console.error('Общая ошибка при обработке вопросов:', e);
+          setError('Не удалось обработать вопросы теста. Подробности: ' + (e as Error).message);
+          setPageState(TestPageState.ERROR);
         }
       } catch (err) {
+        if (!mounted) return;
         console.error('Ошибка при загрузке теста:', err);
         setError('Не удалось загрузить тест. Пожалуйста, попробуйте позже.');
-      } finally {
-        setLoading(false);
+        setPageState(TestPageState.ERROR);
       }
     }
     
     fetchTest();
+    
+    // Очистка при размонтировании компонента
+    return () => {
+      mounted = false;
+    };
   }, [params.id, getTestById]);
   
   // Форматирование времени
@@ -83,7 +181,7 @@ export default function TestStartPage() {
   // Эффект для запуска таймера
   useEffect(() => {
     // Запускаем таймер только если тест загружен и вопросы есть
-    if (loading || questions.length === 0 || showResult) return;
+    if (pageState !== TestPageState.READY || pageState === TestPageState.RESULT) return;
     
     const timer = setInterval(() => {
       setRemainingTime((prev) => {
@@ -97,7 +195,7 @@ export default function TestStartPage() {
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [loading, questions, showResult]);
+  }, [pageState]);
   
   // Проверка состояния туториала
   useEffect(() => {
@@ -234,7 +332,7 @@ export default function TestStartPage() {
   
   // Завершение теста
   const handleFinishTest = () => {
-    setShowResult(true);
+    setPageState(TestPageState.RESULT);
     if (user) {
       saveResults();
     }
@@ -270,20 +368,24 @@ export default function TestStartPage() {
     })
   };
   
-  if (loading) {
+  // Компонент загрузки
+  if (pageState === TestPageState.LOADING) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
           <FaSpinner className="animate-spin text-4xl text-primary-600 mx-auto mb-4" />
-          <p className="text-neutral-600">Загрузка теста...</p>
+          <h2 className="text-xl font-medium text-neutral-700 mb-2">Загрузка теста...</h2>
+          <p className="text-neutral-500 mb-1">Подождите, идет подготовка вопросов</p>
+          <p className="text-xs text-neutral-400">Это может занять несколько секунд</p>
         </div>
       </div>
     );
   }
   
-  if (error) {
+  // Компонент ошибки
+  if (pageState === TestPageState.ERROR) {
     return (
-      <div className="py-8">
+      <div className="min-h-screen py-8 bg-white">
         <div className="app-container">
           <div className="flex items-center mb-6">
             <button 
@@ -295,9 +397,12 @@ export default function TestStartPage() {
             </button>
             <h1 className="text-2xl font-bold">Ошибка</h1>
           </div>
-          <div className="card text-center">
-            <p className="text-red-500 mb-4">Не удалось загрузить тест</p>
-            <p className="text-neutral-600 text-sm mb-6">{error}</p>
+          <div className="card text-center p-8">
+            <div className="text-red-500 text-5xl mb-4">
+              <FaTimes className="mx-auto" />
+            </div>
+            <h2 className="text-xl font-bold text-red-600 mb-4">Не удалось загрузить тест</h2>
+            <p className="text-neutral-600 mb-6">{error}</p>
             <button 
               onClick={() => router.back()}
               className="btn"
@@ -310,9 +415,10 @@ export default function TestStartPage() {
     );
   }
   
-  if (questions.length === 0) {
+  // Компонент отсутствия вопросов
+  if (pageState === TestPageState.NO_QUESTIONS) {
     return (
-      <div className="py-8">
+      <div className="min-h-screen py-8 bg-white">
         <div className="app-container">
           <div className="flex items-center mb-6">
             <button 
@@ -322,11 +428,12 @@ export default function TestStartPage() {
             >
               <FaArrowLeft />
             </button>
-            <h1 className="text-2xl font-bold">Ошибка</h1>
+            <h1 className="text-2xl font-bold">Пустой тест</h1>
           </div>
-          <div className="card text-center">
-            <p className="text-red-500 mb-4">Тест не содержит вопросов</p>
-            <p className="text-neutral-600 text-sm mb-6">К сожалению, этот тест пуст или содержит неверный формат данных.</p>
+          <div className="card text-center p-8">
+            <p className="text-yellow-500 mb-4 text-4xl">⚠️</p>
+            <h2 className="text-xl font-bold mb-4">Тест не содержит вопросов</h2>
+            <p className="text-neutral-600 mb-6">К сожалению, этот тест пуст или содержит неверный формат данных.</p>
             <button 
               onClick={() => router.back()}
               className="btn"
@@ -339,16 +446,16 @@ export default function TestStartPage() {
     );
   }
   
-  // Если отображаем результаты
-  if (showResult) {
+  // Компонент с результатами теста
+  if (pageState === TestPageState.RESULT) {
     const results = calculateResults();
     
     return (
-      <div className="min-h-screen py-8 pb-24">
+      <div className="min-h-screen py-8 pb-24 bg-white">
         <div className="app-container h-full">
           <h1 className="text-2xl font-bold mb-6 text-center">Результаты теста</h1>
           
-          <div className="card text-center mb-6">
+          <div className="card text-center mb-6 p-6">
             <div 
               className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold
                 ${results.percentage >= 80 
@@ -411,10 +518,10 @@ export default function TestStartPage() {
     );
   }
   
-  // Если у нас есть вопросы и не показываем результаты, показываем тест
+  // Основная часть теста (когда все готово)
   return (
     <div 
-      className="h-screen w-full overflow-hidden"
+      className="min-h-screen w-full overflow-hidden bg-white"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -447,7 +554,7 @@ export default function TestStartPage() {
       <div className="fixed top-14 left-0 w-full px-4 z-10">
         <div className="bg-neutral-100 h-1 rounded-full overflow-hidden max-w-3xl mx-auto">
           <div 
-            className="bg-primary-500 h-full rounded-full"
+            className="bg-primary-500 h-full rounded-full transition-all duration-300 ease-out"
             style={{ width: `${((currentIndex + 1) / questions.length) * 100}%` }}
           ></div>
         </div>
@@ -476,18 +583,8 @@ export default function TestStartPage() {
       
       {/* Карусель вопросов */}
       <div className="h-full pt-20">
-        <AnimatePresence initial={false} custom={direction} mode="wait">
-          <motion.div
-            key={questions[currentIndex].id}
-            custom={direction}
-            variants={variants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ 
-              duration: 0.3, 
-              ease: [0.23, 0.04, 0.27, 1] 
-            }}
+        {questions[currentIndex] && (
+          <div
             className="h-full w-full flex flex-col justify-center px-4 overflow-auto"
             ref={containerRef}
           >
@@ -495,51 +592,53 @@ export default function TestStartPage() {
               <h3 className="text-xl font-medium mb-6">{questions[currentIndex].question}</h3>
               
               <div className="space-y-3 mb-5">
-                {questions[currentIndex].options.map((option) => {
-                  const userAnswerId = getUserAnswer(questions[currentIndex].id);
-                  const hasUserAnswered = hasAnswered(questions[currentIndex].id);
-                  
-                  return (
-                    <button
-                      key={option.id}
-                      className={`w-full p-4 rounded-lg text-left transition-all ${
-                        !hasUserAnswered 
-                          ? 'border border-neutral-200 bg-white hover:border-neutral-300' 
-                          : option.isCorrect 
-                            ? 'bg-green-50 border border-green-300' 
-                            : userAnswerId === option.id 
-                              ? 'bg-red-50 border border-red-300' 
-                              : 'border border-neutral-200 bg-white opacity-70'
-                      }`}
-                      onClick={() => handleSelectOption(questions[currentIndex].id, option.id, option.isCorrect)}
-                      disabled={hasUserAnswered}
-                    >
-                      <div className="flex items-center">
-                        <span className="flex-shrink-0 rounded-full w-6 h-6 flex items-center justify-center border border-neutral-300 text-sm font-medium mr-3">
-                          {option.id.toUpperCase()}
-                        </span>
-                        
-                        <span>{option.text}</span>
-                        
-                        {hasUserAnswered && (
-                          <span className="ml-auto">
-                            {option.isCorrect ? (
-                              <FaCheck className="text-green-500" />
-                            ) : userAnswerId === option.id ? (
-                              <FaTimes className="text-red-500" />
-                            ) : null}
+                {Array.isArray(questions[currentIndex].options) && questions[currentIndex].options.length > 0 ? (
+                  questions[currentIndex].options.map((option) => {
+                    const userAnswerId = getUserAnswer(questions[currentIndex].id);
+                    const hasUserAnswered = hasAnswered(questions[currentIndex].id);
+                    
+                    return (
+                      <button
+                        key={option.id}
+                        className={`w-full p-4 rounded-lg text-left transition-all ${
+                          !hasUserAnswered 
+                            ? 'border border-neutral-200 bg-white hover:border-neutral-300' 
+                            : option.isCorrect 
+                              ? 'bg-green-50 border border-green-300' 
+                              : userAnswerId === option.id 
+                                ? 'bg-red-50 border border-red-300' 
+                                : 'border border-neutral-200 bg-white opacity-70'
+                        }`}
+                        onClick={() => handleSelectOption(questions[currentIndex].id, option.id, option.isCorrect)}
+                        disabled={hasUserAnswered}
+                      >
+                        <div className="flex items-center">
+                          <span className="flex-shrink-0 rounded-full w-6 h-6 flex items-center justify-center border border-neutral-300 text-sm font-medium mr-3">
+                            {option.id.toUpperCase()}
                           </span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
+                          
+                          <span>{option.text}</span>
+                          
+                          {hasUserAnswered && (
+                            <span className="ml-auto">
+                              {option.isCorrect ? (
+                                <FaCheck className="text-green-500" />
+                              ) : userAnswerId === option.id ? (
+                                <FaTimes className="text-red-500" />
+                              ) : null}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })
+                ) : (
+                  <p className="text-red-500">Ошибка: Варианты ответа отсутствуют для этого вопроса</p>
+                )}
               </div>
               
               {hasAnswered(questions[currentIndex].id) && questions[currentIndex].explanation && (
-                <motion.div 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
+                <div 
                   className="bg-blue-50 p-4 rounded-lg border border-blue-100"
                 >
                   <div className="flex">
@@ -549,7 +648,7 @@ export default function TestStartPage() {
                       <p className="text-sm text-neutral-700">{questions[currentIndex].explanation}</p>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
             </div>
             
@@ -583,8 +682,8 @@ export default function TestStartPage() {
                 </button>
               )}
             </div>
-          </motion.div>
-        </AnimatePresence>
+          </div>
+        )}
       </div>
     </div>
   );
