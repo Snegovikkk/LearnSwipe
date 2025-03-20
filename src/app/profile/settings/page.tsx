@@ -16,7 +16,6 @@ export default function ProfileSettingsPage() {
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
   const [settings, setSettings] = useState({
     notifications: true,
-    darkMode: false,
     autoplay: true,
     language: 'Русский',
     privacy: 'public'
@@ -37,7 +36,7 @@ export default function ProfileSettingsPage() {
     }
   }, [user]);
 
-  const toggleSetting = (setting: 'notifications' | 'darkMode' | 'autoplay') => {
+  const toggleSetting = (setting: 'notifications' | 'autoplay') => {
     setSettings(prev => ({
       ...prev,
       [setting]: !prev[setting]
@@ -279,29 +278,6 @@ export default function ProfileSettingsPage() {
                     <span 
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
                         ${settings.notifications ? 'translate-x-6' : 'translate-x-1'}
-                      `}
-                    />
-                  </button>
-                </div>
-
-                {/* Переключатель для темной темы */}
-                <div className="flex items-center justify-between py-3 border-b border-neutral-200">
-                  <div className="flex items-center">
-                    <FaEye className="text-neutral-500 mr-3" />
-                    <div>
-                      <div>Темная тема</div>
-                      <div className="text-xs text-neutral-500">Включить темную тему интерфейса</div>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => toggleSetting('darkMode')}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
-                      ${settings.darkMode ? 'bg-primary-500' : 'bg-neutral-300'}
-                    `}
-                  >
-                    <span 
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
-                        ${settings.darkMode ? 'translate-x-6' : 'translate-x-1'}
                       `}
                     />
                   </button>
