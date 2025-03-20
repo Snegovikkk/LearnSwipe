@@ -21,13 +21,9 @@ const mockUser = {
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, loading: authLoading, error: authError, updateProfile, resetPassword, signOut } = useAuth();
+  const { user, loading: authLoading, error: authError, signOut } = useAuth();
   const { getUserTests, loading: testsLoading } = useTests();
   
-  const [name, setName] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-  const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
   const [testStats, setTestStats] = useState({
     created: 0,
     taken: 0
@@ -36,8 +32,6 @@ export default function ProfilePage() {
   // Загружаем данные пользователя при монтировании компонента
   useEffect(() => {
     if (user) {
-      setName(user.user_metadata?.name || '');
-      
       // Загружаем статистику тестов пользователя
       async function loadTestStats() {
         try {
@@ -57,57 +51,6 @@ export default function ProfilePage() {
     }
   }, [user, getUserTests]);
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    setMessage(null);
-
-    try {
-      const success = await updateProfile({ name });
-      
-      if (success) {
-        setMessage({
-          text: 'Профиль успешно обновлен',
-          type: 'success'
-        });
-      }
-    } catch (error: any) {
-      console.error('Ошибка обновления профиля:', error);
-      setMessage({
-        text: error.message || 'Не удалось обновить профиль',
-        type: 'error'
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!user?.email) return;
-    
-    setIsResetting(true);
-    setMessage(null);
-    
-    try {
-      const success = await resetPassword(user.email);
-      
-      if (success) {
-        setMessage({
-          text: 'Инструкции по сбросу пароля отправлены на вашу почту',
-          type: 'success'
-        });
-      }
-    } catch (error: any) {
-      console.error('Ошибка при запросе сброса пароля:', error);
-      setMessage({
-        text: error.message || 'Не удалось отправить инструкции по сбросу пароля',
-        type: 'error'
-      });
-    } finally {
-      setIsResetting(false);
-    }
-  };
-
   const handleLogout = async () => {
     await signOut();
     router.push('/');
@@ -124,7 +67,7 @@ export default function ProfilePage() {
                 <FaUser className="w-8 h-8" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold">{name || user?.user_metadata?.name || 'Пользователь'}</h1>
+                <h1 className="text-3xl font-bold">{user?.user_metadata?.name || 'Пользователь'}</h1>
                 <p className="text-neutral-500">{user?.email}</p>
               </div>
             </div>
@@ -136,19 +79,6 @@ export default function ProfilePage() {
             </button>
           </div>
         </div>
-        
-        {/* Сообщения */}
-        {message && (
-          <div 
-            className={`p-4 mb-6 rounded-lg ${
-              message.type === 'success' 
-                ? 'bg-green-50 text-green-800 border border-green-200' 
-                : 'bg-red-50 text-red-800 border border-red-200'
-            }`}
-          >
-            {message.text}
-          </div>
-        )}
         
         {/* Быстрый доступ */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
@@ -192,105 +122,53 @@ export default function ProfilePage() {
           </Link>
           
           <Link 
-            href="/profile/history"
+            href="/profile/settings"
             className="bg-white shadow-sm hover:shadow transition-shadow p-6 rounded-xl border border-neutral-200"
           >
             <div className="flex flex-col items-center text-center">
-              <div className="h-12 w-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-3">
-                <FaChartLine className="w-5 h-5" />
+              <div className="h-12 w-12 bg-neutral-100 text-neutral-600 rounded-full flex items-center justify-center mb-3">
+                <FaCog className="w-5 h-5" />
               </div>
-              <h3 className="font-medium mb-1">Статистика</h3>
-              <p className="text-neutral-500 text-sm">Ваши результаты</p>
+              <h3 className="font-medium mb-1">Настройки</h3>
+              <p className="text-neutral-500 text-sm">Личные данные и безопасность</p>
             </div>
           </Link>
         </div>
         
-        {/* Настройки профиля */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Личная информация */}
-          <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200">
-            <h2 className="text-xl font-semibold mb-6 flex items-center">
-              <FaUser className="mr-2 text-primary-500" /> Личная информация
-            </h2>
-            
-            <form onSubmit={handleUpdateProfile} className="space-y-4">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-neutral-600 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  value={user?.email || ''}
-                  disabled
-                  className="w-full px-4 py-3 bg-neutral-50 border border-neutral-200 rounded-lg text-neutral-500"
-                />
-                <p className="mt-1 text-xs text-neutral-500">
-                  Email нельзя изменить
-                </p>
-              </div>
-              
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-neutral-600 mb-1">
-                  Имя
-                </label>
-                <input
-                  type="text"
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-200 focus:border-primary-300 transition-all"
-                  placeholder="Ваше имя"
-                />
-              </div>
-              
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isSaving || authLoading}
-                  className={`btn-primary px-6 py-3 rounded-lg w-full ${
-                    (isSaving || authLoading) ? 'opacity-70 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {isSaving ? 'Сохранение...' : 'Сохранить изменения'}
-                </button>
-              </div>
-            </form>
-          </div>
+        {/* Дополнительные действия */}
+        <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200 mb-10">
+          <h2 className="text-xl font-semibold mb-6">Популярные действия</h2>
           
-          {/* Безопасность */}
-          <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200">
-            <h2 className="text-xl font-semibold mb-6 flex items-center">
-              <FaCog className="mr-2 text-primary-500" /> Безопасность
-            </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <Link 
+              href="/tests"
+              className="flex items-center p-3 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+            >
+              <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mr-3">
+                <FaFileAlt className="w-4 h-4" />
+              </div>
+              <span>Просмотреть все тесты</span>
+            </Link>
             
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium mb-2">Смена пароля</h3>
-                <p className="text-neutral-600 mb-4 text-sm">
-                  Мы отправим инструкции по смене пароля на вашу электронную почту
-                </p>
-                <button 
-                  onClick={handleResetPassword}
-                  disabled={isResetting}
-                  className={`btn-secondary px-6 py-3 rounded-lg w-full ${
-                    isResetting ? 'opacity-70 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {isResetting ? 'Отправка...' : 'Сменить пароль'}
-                </button>
+            <Link 
+              href="/profile/history"
+              className="flex items-center p-3 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+            >
+              <div className="h-10 w-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center mr-3">
+                <FaHistory className="w-4 h-4" />
               </div>
-              
-              <div className="pt-3 border-t border-neutral-200">
-                <h3 className="text-lg font-medium mb-2">Дополнительно</h3>
-                <Link 
-                  href="/profile/settings"
-                  className="flex items-center text-neutral-700 hover:text-primary-600 transition-colors"
-                >
-                  <FaCog className="mr-2" /> Настройки аккаунта 
-                </Link>
+              <span>История прохождений</span>
+            </Link>
+            
+            <Link 
+              href="/profile/settings"
+              className="flex items-center p-3 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
+            >
+              <div className="h-10 w-10 bg-neutral-100 text-neutral-600 rounded-full flex items-center justify-center mr-3">
+                <FaCog className="w-4 h-4" />
               </div>
-            </div>
+              <span>Настройки профиля</span>
+            </Link>
           </div>
         </div>
         
