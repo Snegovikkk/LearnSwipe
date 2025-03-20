@@ -60,7 +60,15 @@ const Dashboard = () => {
       poor: 0
     },
     skillMap: {} as Record<string, {score: number, count: number, tests: string[]}>,
-    weakestSkills: [] as {topic: string, score: number}[]
+    weakestSkills: [] as {topic: string, score: number}[],
+    learningProgress: {
+      completedTests: 0,
+      targetTests: 25,
+      averageScoreGoal: 8,
+      completedTopics: 0,
+      targetTopics: 10,
+      progressPercentage: 0
+    }
   });
 
   // Загрузка результатов тестов пользователя
@@ -141,6 +149,18 @@ const Dashboard = () => {
             .sort((a, b) => a.score - b.score)
             .slice(0, 3);
           
+          // Вычисляем прогресс обучения
+          const completedTopics = Object.keys(skillMap).length;
+          const targetTopics = 10; // Целевое количество тем для освоения
+          const targetTests = 25; // Целевое количество тестов
+          const completedTests = userResults.length;
+          
+          // Общий прогресс (из 100%)
+          const testProgress = Math.min(completedTests / targetTests, 1) * 0.5; // 50% от общего прогресса
+          const topicProgress = Math.min(completedTopics / targetTopics, 1) * 0.3; // 30% от общего прогресса
+          const scoreProgress = Math.min(avgScore / 8, 1) * 0.2; // 20% от общего прогресса
+          const progressPercentage = Math.round((testProgress + topicProgress + scoreProgress) * 100);
+          
           setStats({
             totalTests: userResults.length,
             averageScore: Math.round(avgScore * 10) / 10,
@@ -153,7 +173,15 @@ const Dashboard = () => {
             })),
             scoreCategories: scoreCategories,
             skillMap: skillMap,
-            weakestSkills: weakestSkills
+            weakestSkills: weakestSkills,
+            learningProgress: {
+              completedTests,
+              targetTests,
+              averageScoreGoal: 8,
+              completedTopics,
+              targetTopics,
+              progressPercentage
+            }
           });
         }
       } catch (error) {
@@ -453,9 +481,162 @@ const Dashboard = () => {
           </div>
         )}
         
-        {/* Последние результаты */}
+        {/* После сводной статистики и перед картой навыков */}
         {results.length > 0 && (
           <>
+            <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-200 mb-8">
+              <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                <h2 className="text-xl font-bold">Ваш прогресс в обучении</h2>
+                <div className="flex items-center mt-2 md:mt-0">
+                  <div className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg"
+                    style={{
+                      background: `conic-gradient(#4F46E5 ${stats.learningProgress.progressPercentage}%, #E5E7EB 0)`
+                    }}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center">
+                      <span className="text-primary-700">{stats.learningProgress.progressPercentage}%</span>
+                    </div>
+                  </div>
+                  <div className="ml-4">
+                    <div className="text-sm text-neutral-500">Общий прогресс</div>
+                    <div className="font-medium">
+                      {stats.learningProgress.progressPercentage < 25 ? 'Начинающий' : 
+                       stats.learningProgress.progressPercentage < 50 ? 'Изучающий' : 
+                       stats.learningProgress.progressPercentage < 75 ? 'Продвинутый' : 'Эксперт'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div className="p-4 border border-neutral-200 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-medium text-neutral-800">Пройденные тесты</h3>
+                      <p className="text-sm text-neutral-500">Цель: {stats.learningProgress.targetTests} тестов</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-primary-700">
+                        <path fillRule="evenodd" d="M10 1a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 1zM5.05 3.05a.75.75 0 011.06 0l1.062 1.06a.75.75 0 11-1.061 1.061L5.05 4.11a.75.75 0 010-1.06zm9.9 0a.75.75 0 010 1.06l-1.06 1.062a.75.75 0 01-1.062-1.061l1.061-1.06a.75.75 0 011.06 0zM3 10a.75.75 0 01.75-.75h1.5a.75.75 0 010 1.5h-1.5A.75.75 0 013 10zm11.75-.75a.75.75 0 000 1.5h1.5a.75.75 0 000-1.5h-1.5zm-9.543 4.81a.75.75 0 011.06 0l1.06 1.06a.75.75 0 11-1.06 1.061l-1.06-1.06a.75.75 0 010-1.06zm6.963 0a.75.75 0 011.06 0l1.06 1.06a.75.75 0 01-1.06 1.061l-1.06-1.06a.75.75 0 010-1.06zM10 15a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0110 15z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex items-end mt-4">
+                    <div className="text-3xl font-bold mr-2">{stats.learningProgress.completedTests}</div>
+                    <div className="text-sm text-neutral-500 mb-1">из {stats.learningProgress.targetTests}</div>
+                  </div>
+                  <div className="w-full bg-neutral-200 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-primary-500 h-2 rounded-full" 
+                      style={{ width: `${Math.min(stats.learningProgress.completedTests / stats.learningProgress.targetTests * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div className="p-4 border border-neutral-200 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-medium text-neutral-800">Изученные темы</h3>
+                      <p className="text-sm text-neutral-500">Цель: {stats.learningProgress.targetTopics} тем</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-amber-700">
+                        <path d="M10 9a3 3 0 100-6 3 3 0 000 6zM6 8a2 2 0 11-4 0 2 2 0 014 0zM1.49 15.326a.78.78 0 01-.358-.442 3 3 0 014.308-3.516 6.484 6.484 0 00-1.905 3.959c-.023.222-.014.442.025.654a4.97 4.97 0 01-2.07-.655zM16.44 15.98a4.97 4.97 0 002.07-.654.78.78 0 00.357-.442 3 3 0 00-4.308-3.517 6.484 6.484 0 011.907 3.96 2.32 2.32 0 01-.026.654zM18 8a2 2 0 11-4 0 2 2 0 014 0zM5.304 16.19a.844.844 0 01-.277-.71 5 5 0 019.947 0 .843.843 0 01-.277.71A6.975 6.975 0 0110 18a6.974 6.974 0 01-4.696-1.81z" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex items-end mt-4">
+                    <div className="text-3xl font-bold mr-2">{stats.learningProgress.completedTopics}</div>
+                    <div className="text-sm text-neutral-500 mb-1">из {stats.learningProgress.targetTopics}</div>
+                  </div>
+                  <div className="w-full bg-neutral-200 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-amber-500 h-2 rounded-full" 
+                      style={{ width: `${Math.min(stats.learningProgress.completedTopics / stats.learningProgress.targetTopics * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div className="p-4 border border-neutral-200 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-medium text-neutral-800">Средний балл</h3>
+                      <p className="text-sm text-neutral-500">Цель: {stats.learningProgress.averageScoreGoal} из 10</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5 text-green-700">
+                        <path fillRule="evenodd" d="M16.403 12.652a3 3 0 000-5.304 3 3 0 00-3.75-3.751 3 3 0 00-5.305 0 3 3 0 00-3.751 3.75 3 3 0 000 5.305 3 3 0 003.75 3.751 3 3 0 005.305 0 3 3 0 003.751-3.75zm-2.546-4.46a.75.75 0 00-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div className="flex items-end mt-4">
+                    <div className="text-3xl font-bold mr-2">{stats.averageScore}</div>
+                    <div className="text-sm text-neutral-500 mb-1">из 10</div>
+                  </div>
+                  <div className="w-full bg-neutral-200 rounded-full h-2 mt-2">
+                    <div 
+                      className="bg-green-500 h-2 rounded-full" 
+                      style={{ width: `${Math.min(stats.averageScore / stats.learningProgress.averageScoreGoal * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-4 bg-neutral-50 border border-neutral-200 rounded-lg">
+                <h3 className="font-medium text-neutral-700 mb-2">Следующие этапы развития</h3>
+                <ul className="space-y-2">
+                  {stats.learningProgress.completedTopics < stats.learningProgress.targetTopics && (
+                    <li className="flex items-start">
+                      <div className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 mr-2 mt-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                          <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-neutral-700">
+                        Исследуйте еще {stats.learningProgress.targetTopics - stats.learningProgress.completedTopics} новых тем для расширения своих знаний
+                      </span>
+                    </li>
+                  )}
+                  {stats.learningProgress.completedTests < stats.learningProgress.targetTests && (
+                    <li className="flex items-start">
+                      <div className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 mr-2 mt-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                          <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-neutral-700">
+                        Пройдите еще {stats.learningProgress.targetTests - stats.learningProgress.completedTests} тестов для достижения цели
+                      </span>
+                    </li>
+                  )}
+                  {stats.averageScore < stats.learningProgress.averageScoreGoal && (
+                    <li className="flex items-start">
+                      <div className="w-5 h-5 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 mr-2 mt-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                          <path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-neutral-700">
+                        Повысьте средний балл с {stats.averageScore} до {stats.learningProgress.averageScoreGoal}, повторно пройдя тесты со слабыми результатами
+                      </span>
+                    </li>
+                  )}
+                  {stats.learningProgress.progressPercentage >= 100 && (
+                    <li className="flex items-start">
+                      <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center text-green-700 mr-2 mt-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                          <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <span className="text-sm text-green-700 font-medium">
+                        Поздравляем! Вы достигли всех целей обучения. Установите новые цели для дальнейшего развития!
+                      </span>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            </div>
+            
             <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-200 mb-8">
               <h2 className="text-xl font-bold mb-4">Карта навыков</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -500,7 +681,7 @@ const Dashboard = () => {
                 ))}
               </div>
             </div>
-            
+
             <div className="bg-white p-6 rounded-lg shadow-sm border border-neutral-200 mb-8">
               <h2 className="text-xl font-bold mb-4">Рекомендации по обучению</h2>
               
