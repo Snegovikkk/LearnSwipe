@@ -2,20 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaArrowLeft, FaCheck, FaBell, FaEye, FaLock, FaUser, FaCog, FaMoon, FaSun, FaDesktop } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaBell, FaEye, FaLock, FaUser, FaCog } from 'react-icons/fa';
 import useAuth from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { useSettings, ThemeType } from '@/contexts/SettingsContext';
 
 export default function ProfileSettingsPage() {
   const router = useRouter();
   const { user, loading: authLoading, error: authError, updateProfile, resetPassword } = useAuth();
-  const { settings, updateSettings, toggleSetting, isDarkMode } = useSettings();
   
   const [name, setName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [message, setMessage] = useState<{text: string, type: 'success' | 'error'} | null>(null);
+  const [settings, setSettings] = useState({
+    notifications: true,
+    darkMode: false,
+    autoplay: true,
+    language: 'Русский',
+    privacy: 'public'
+  });
 
   // Загружаем данные пользователя при монтировании компонента
   useEffect(() => {
@@ -31,6 +36,20 @@ export default function ProfileSettingsPage() {
       }
     }
   }, [user]);
+
+  const toggleSetting = (setting: 'notifications' | 'darkMode' | 'autoplay') => {
+    setSettings(prev => ({
+      ...prev,
+      [setting]: !prev[setting]
+    }));
+  };
+
+  const changeSetting = (setting: 'language' | 'privacy', value: string) => {
+    setSettings(prev => ({
+      ...prev,
+      [setting]: value
+    }));
+  };
   
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,45 +122,11 @@ export default function ProfileSettingsPage() {
   };
 
   const handleSaveSettings = () => {
-    try {
-      // Специально не передаем объект settings напрямую,
-      // чтобы избежать сохранения временных состояний
-      updateSettings({
-        language: settings.language,
-        privacy: settings.privacy,
-        theme: settings.theme,
-        notifications: settings.notifications,
-        autoplay: settings.autoplay
-      });
-      
-      setMessage({
-        text: 'Настройки успешно сохранены',
-        type: 'success'
-      });
-    } catch (error) {
-      console.error('Ошибка при сохранении настроек:', error);
-      setMessage({
-        text: 'Не удалось сохранить настройки',
-        type: 'error'
-      });
-    }
-  };
-
-  // Функция для выбора темы
-  const handleThemeChange = (theme: ThemeType) => {
-    updateSettings({ theme });
-  };
-
-  // Получаем иконку и текст для текущей темы
-  const getThemeInfo = (theme: ThemeType) => {
-    switch (theme) {
-      case 'light':
-        return { icon: <FaSun className="w-5 h-5" />, text: 'Светлая' };
-      case 'dark':
-        return { icon: <FaMoon className="w-5 h-5" />, text: 'Темная' };
-      case 'auto':
-        return { icon: <FaDesktop className="w-5 h-5" />, text: 'Системная' };
-    }
+    // Здесь будет сохранение настроек на сервер
+    setMessage({
+      text: 'Настройки успешно сохранены',
+      type: 'success'
+    });
   };
 
   return (
@@ -276,53 +261,6 @@ export default function ProfileSettingsPage() {
                   <FaCog className="mr-2 text-primary-500" /> Общие настройки
                 </h2>
 
-                {/* Выбор темы */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-medium mb-3">Тема приложения</h3>
-                  <div className="grid grid-cols-3 gap-3">
-                    <button
-                      onClick={() => handleThemeChange('light')}
-                      className={`flex flex-col items-center justify-center p-4 rounded-lg border ${
-                        settings.theme === 'light' 
-                          ? 'border-primary-500 bg-primary-50 text-primary-600' 
-                          : 'border-neutral-200 hover:bg-neutral-50'
-                      }`}
-                    >
-                      <FaSun className="text-2xl mb-2" />
-                      <span>Светлая</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => handleThemeChange('dark')}
-                      className={`flex flex-col items-center justify-center p-4 rounded-lg border ${
-                        settings.theme === 'dark' 
-                          ? 'border-primary-500 bg-primary-50 text-primary-600' 
-                          : 'border-neutral-200 hover:bg-neutral-50'
-                      }`}
-                    >
-                      <FaMoon className="text-2xl mb-2" />
-                      <span>Темная</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => handleThemeChange('auto')}
-                      className={`flex flex-col items-center justify-center p-4 rounded-lg border ${
-                        settings.theme === 'auto' 
-                          ? 'border-primary-500 bg-primary-50 text-primary-600' 
-                          : 'border-neutral-200 hover:bg-neutral-50'
-                      }`}
-                    >
-                      <FaDesktop className="text-2xl mb-2" />
-                      <span>Системная</span>
-                    </button>
-                  </div>
-                  <p className="mt-2 text-sm text-neutral-500">
-                    {settings.theme === 'auto' ? 'Тема будет автоматически меняться в соответствии с настройками вашей системы' : ''}
-                    {settings.theme === 'light' ? 'Всегда использовать светлую тему' : ''}
-                    {settings.theme === 'dark' ? 'Всегда использовать темную тему' : ''}
-                  </p>
-                </div>
-
                 {/* Переключатель для уведомлений */}
                 <div className="flex items-center justify-between py-3 border-b border-neutral-200">
                   <div className="flex items-center">
@@ -341,6 +279,29 @@ export default function ProfileSettingsPage() {
                     <span 
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
                         ${settings.notifications ? 'translate-x-6' : 'translate-x-1'}
+                      `}
+                    />
+                  </button>
+                </div>
+
+                {/* Переключатель для темной темы */}
+                <div className="flex items-center justify-between py-3 border-b border-neutral-200">
+                  <div className="flex items-center">
+                    <FaEye className="text-neutral-500 mr-3" />
+                    <div>
+                      <div>Темная тема</div>
+                      <div className="text-xs text-neutral-500">Включить темную тему интерфейса</div>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => toggleSetting('darkMode')}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors
+                      ${settings.darkMode ? 'bg-primary-500' : 'bg-neutral-300'}
+                    `}
+                  >
+                    <span 
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform
+                        ${settings.darkMode ? 'translate-x-6' : 'translate-x-1'}
                       `}
                     />
                   </button>
@@ -380,7 +341,7 @@ export default function ProfileSettingsPage() {
                   </label>
                   <select 
                     value={settings.language}
-                    onChange={(e) => updateSettings({ language: e.target.value as any })}
+                    onChange={(e) => changeSetting('language', e.target.value)}
                     className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-200 focus:border-primary-300 transition-all"
                   >
                     <option value="Русский">Русский</option>
@@ -398,7 +359,7 @@ export default function ProfileSettingsPage() {
                   </label>
                   <select 
                     value={settings.privacy}
-                    onChange={(e) => updateSettings({ privacy: e.target.value as any })}
+                    onChange={(e) => changeSetting('privacy', e.target.value)}
                     className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-200 focus:border-primary-300 transition-all"
                   >
                     <option value="public">Публичный</option>
