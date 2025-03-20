@@ -21,9 +21,11 @@ export default function CreateTestPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [generatedQuestions, setGeneratedQuestions] = useState<TestQuestion[]>([]);
   const [step, setStep] = useState<'input' | 'review' | 'success'>('input');
   const [useFile, setUseFile] = useState(false);
+  const [quickCreating, setQuickCreating] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -65,6 +67,7 @@ export default function CreateTestPage() {
     
     setLoading(true);
     setError('');
+    setSelectedTopic(null); // Сбрасываем выбранную тему при новом анализе
     
     try {
       // Получаем результат в виде объекта с массивом тем
@@ -81,8 +84,17 @@ export default function CreateTestPage() {
     }
   };
 
+  // Обработчик выбора темы
+  const handleTopicSelect = (topic: string) => {
+    setSelectedTopic(topic === selectedTopic ? null : topic);
+    
+    // Если тема выбрана, можно использовать её в названии теста, если оно пустое
+    if (topic !== selectedTopic && !title) {
+      setTitle(`Тест по теме: ${topic}`);
+    }
+  };
+
   // Генерация теста на основе текста
-  // ИСПРАВЛЕНО: правильная обработка типов
   const handleGenerateTest = async () => {
     if (!title) {
       setError('Пожалуйста, введите название теста');
@@ -99,11 +111,40 @@ export default function CreateTestPage() {
     
     try {
       // Получаем результат теста с вопросами
-      const testResult = await generateTest(content, title);
+      // Если есть выбранная тема, передаем её для более точной генерации
+      const testResult = await generateTest(content, title, selectedTopic);
+      
+      // Проверка наличия данных
+      if (!testResult) {
+        throw new Error('Не удалось получить результат генерации теста');
+      }
+      
       // Извлекаем вопросы из результата или используем пустой массив
-      const questionsArray: TestQuestion[] = testResult?.questions || [];
+      const questionsArray = testResult.questions || [];
+      
+      // Валидация вопросов
+      if (!Array.isArray(questionsArray) || questionsArray.length === 0) {
+        throw new Error('Сгенерирован пустой список вопросов, попробуйте еще раз');
+      }
+      
+      console.log('Сгенерировано вопросов:', questionsArray.length);
+      
+      // Убедимся, что каждый вопрос имеет ID и нужные поля
+      const validatedQuestions = questionsArray.map((q, index) => ({
+        id: q.id || `q${index + 1}`,
+        question: q.question,
+        options: Array.isArray(q.options) 
+          ? q.options.map((opt, optIndex) => ({
+              id: opt.id || String.fromCharCode(97 + optIndex), // a, b, c, d
+              text: opt.text,
+              isCorrect: !!opt.isCorrect
+            }))
+          : [],
+        explanation: q.explanation || ''
+      }));
+      
       // Устанавливаем вопросы в состояние
-      setGeneratedQuestions(questionsArray);
+      setGeneratedQuestions(validatedQuestions);
       setStep('review');
     } catch (err: any) {
       console.error('Ошибка генерации теста:', err);
@@ -146,6 +187,81 @@ export default function CreateTestPage() {
       setError(err.message || 'Не удалось сохранить тест');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Быстрое создание теста и переход к его прохождению
+  const handleQuickCreateAndStart = async () => {
+    if (!selectedTopic) {
+      setError('Необходимо выбрать тему для быстрого создания теста');
+      return;
+    }
+    
+    if (content.length < 100) {
+      setError('Текст слишком короткий для генерации теста. Минимум 100 символов.');
+      return;
+    }
+    
+    if (!user || !user.id) {
+      setError('Необходимо войти в систему для создания теста');
+      return;
+    }
+    
+    setQuickCreating(true);
+    setError('');
+    
+    try {
+      // Генерируем название теста на основе выбранной темы
+      const testTitle = `Тест по теме: ${selectedTopic}`;
+      
+      // Получаем результат теста с вопросами
+      const testResult = await generateTest(content, testTitle, selectedTopic);
+      
+      if (!testResult) {
+        throw new Error('Не удалось получить результат генерации теста');
+      }
+      
+      // Извлекаем вопросы из результата или используем пустой массив
+      const questionsArray = testResult.questions || [];
+      
+      if (!Array.isArray(questionsArray) || questionsArray.length === 0) {
+        throw new Error('Сгенерирован пустой список вопросов, попробуйте еще раз');
+      }
+      
+      console.log('Быстро сгенерировано вопросов:', questionsArray.length);
+      
+      // Валидация вопросов
+      const validatedQuestions = questionsArray.map((q, index) => ({
+        id: q.id || `q${index + 1}`,
+        question: q.question,
+        options: Array.isArray(q.options) 
+          ? q.options.map((opt, optIndex) => ({
+              id: opt.id || String.fromCharCode(97 + optIndex), // a, b, c, d
+              text: opt.text,
+              isCorrect: !!opt.isCorrect
+            }))
+          : [],
+        explanation: q.explanation || ''
+      }));
+      
+      // Создаем тест в базе данных
+      const savedTest = await createTest({
+        userId: user.id,
+        title: testTitle,
+        questions: validatedQuestions,
+        description: content.substring(0, 200) + (content.length > 200 ? '...' : '')
+      });
+      
+      if (!savedTest) {
+        throw new Error('Не удалось сохранить тест');
+      }
+      
+      // Перенаправляем на страницу прохождения теста
+      router.push(`/tests/${savedTest.id}/start`);
+    } catch (err: any) {
+      console.error('Ошибка быстрого создания теста:', err);
+      setError(err.message || 'Не удалось создать и запустить тест');
+      setQuickCreating(false);
     }
   };
 
@@ -274,19 +390,65 @@ export default function CreateTestPage() {
             
             {suggestedTopics.length > 0 && (
               <div className="mb-6">
+                <div className="mb-4 bg-blue-50 border border-blue-200 p-3 rounded-md text-blue-700 text-sm">
+                  <p className="mb-2 font-medium">Новая функция: быстрое создание теста!</p>
+                  <p>1. Выберите интересующую вас тему из списка ниже, кликнув на неё</p>
+                  <p>2. Нажмите кнопку "Быстро создать и пройти тест", чтобы сразу перейти к тестированию</p>
+                </div>
+                
                 <h3 className="text-sm font-medium text-neutral-700 mb-2">
                   Рекомендуемые темы для теста:
                 </h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-3">
                   {suggestedTopics.map((topic, index) => (
-                    <span 
+                    <button
                       key={index}
-                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800"
+                      type="button"
+                      onClick={() => handleTopicSelect(topic)}
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        selectedTopic === topic 
+                          ? 'bg-primary-500 text-white' 
+                          : 'bg-primary-100 text-primary-800 hover:bg-primary-200'
+                      } cursor-pointer`}
                     >
                       {topic}
-                    </span>
+                    </button>
                   ))}
                 </div>
+                
+                {selectedTopic && (
+                  <div className="mt-3 pt-3 border-t border-neutral-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-neutral-800">
+                          Выбрана тема: <span className="text-primary-600">{selectedTopic}</span>
+                        </p>
+                        <p className="text-xs text-neutral-500 mt-1">
+                          Тест будет создан на основе введенного текста с фокусом на выбранную тему
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleQuickCreateAndStart}
+                        disabled={loading || quickCreating || content.length < 100}
+                        className={`inline-flex items-center px-4 py-2 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors ${
+                          loading || quickCreating || content.length < 100 ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {quickCreating ? (
+                          <>
+                            <FaSpinner className="animate-spin mr-2" />
+                            Создание теста...
+                          </>
+                        ) : (
+                          <>
+                            Быстро создать и пройти тест
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             

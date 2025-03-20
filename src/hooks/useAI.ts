@@ -23,6 +23,7 @@ export default function useAI() {
   const generateTest = async (
     text: string, 
     title: string, 
+    selectedTopic: string | null = null,
     numberOfQuestions: number = 5
   ): Promise<GenerateTestResult | null> => {
     setIsLoading(true);
@@ -34,7 +35,12 @@ export default function useAI() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ text, title, numberOfQuestions }),
+        body: JSON.stringify({ 
+          text, 
+          title, 
+          selectedTopic, 
+          numberOfQuestions 
+        }),
       });
       
       if (!response.ok) {

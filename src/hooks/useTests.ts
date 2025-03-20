@@ -98,14 +98,16 @@ export default function useTests() {
     setLoading(true);
     setError(null);
     try {
+      // Преобразуем questions в строку JSON для сохранения в поле content
+      const questionsJson = JSON.stringify(questions);
+      
       const { data, error } = await supabase
         .from('tests')
         .insert([{
           user_id: userId,
           title: title,
           description: description || '',
-          content: JSON.stringify({ questions }), // Конвертируем в JSON строку для хранения
-          questions: questions // Для прямого доступа к вопросам через JSONB колонку
+          content: questionsJson // Сохраняем как JSON строку
         }])
         .select()
         .single();
@@ -156,13 +158,18 @@ export default function useTests() {
     setLoading(true);
     setError(null);
     try {
+      // Проверяем формат ответов и преобразуем в строку, если уже не строка
+      const answersJson = typeof answers === 'string' 
+        ? answers 
+        : JSON.stringify(answers);
+        
       const { data, error } = await supabase
         .from('test_results')
         .insert([{
           user_id: userId,
           test_id: testId,
           score: score,
-          answers: answers
+          answers: answersJson
         }])
         .select()
         .single();

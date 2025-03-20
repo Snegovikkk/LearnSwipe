@@ -129,10 +129,20 @@ export default function TestDetailPage() {
       const parsed = JSON.parse(test.content);
       if (Array.isArray(parsed)) {
         questions = parsed;
+      } else if (parsed.questions && Array.isArray(parsed.questions)) {
+        questions = parsed.questions;
       }
+    } else if (test.content && typeof test.content === 'object') {
+      // Если content уже является объектом
+      questions = Array.isArray(test.content) 
+        ? test.content 
+        : (test.content.questions && Array.isArray(test.content.questions)) 
+          ? test.content.questions 
+          : [];
     }
+    console.log('Загружено вопросов:', questions.length);
   } catch (e) {
-    console.log('Ошибка при парсинге вопросов', e);
+    console.error('Ошибка при парсинге вопросов', e);
   }
   
   const questionsCount = questions.length || 10;
