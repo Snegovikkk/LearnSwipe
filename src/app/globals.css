@@ -85,6 +85,41 @@ h1, h2, h3, h4, h5, h6 {
   background-color: rgb(var(--primary-600));
 }
 
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgb(var(--primary-500));
+  color: white;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background-color: rgb(var(--primary-600));
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  color: rgb(var(--neutral-800));
+  font-weight: 500;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(var(--neutral-200));
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.btn-secondary:hover {
+  background-color: rgb(var(--neutral-100));
+  border-color: rgb(var(--neutral-300));
+}
+
 .btn-outline {
   background-color: transparent;
   border: 1px solid rgb(var(--primary-500));
