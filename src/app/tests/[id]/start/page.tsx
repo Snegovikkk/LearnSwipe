@@ -8,6 +8,68 @@ import { TestQuestion } from '@/lib/openai';
 import useTests from '@/hooks/useTests';
 import useAuth from '@/hooks/useAuth';
 
+// Добавляем стили для печати
+const printStyles = `
+  @media print {
+    body {
+      font-family: Arial, sans-serif;
+      background: white;
+      color: black;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .app-container {
+      width: 100%;
+      max-width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+    
+    .no-print {
+      display: none !important;
+    }
+    
+    .card {
+      box-shadow: none !important;
+      border: 1px solid #ddd;
+      break-inside: avoid;
+    }
+    
+    .print-full-width {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    
+    h1 {
+      font-size: 24px !important;
+      margin-bottom: 20px !important;
+    }
+    
+    h2 {
+      font-size: 20px !important;
+    }
+    
+    p {
+      font-size: 14px !important;
+    }
+    
+    .print-header {
+      text-align: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 10px;
+    }
+    
+    .print-footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 12px;
+      color: #666;
+    }
+  }
+`;
+
 // Типы для ответов пользователя
 interface UserAnswer {
   questionId: string;
@@ -47,6 +109,9 @@ export default function TestStartPage() {
   const [savingResult, setSavingResult] = useState(false);
   const [resultSaved, setResultSaved] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Добавляем константу для ключа localStorage
+  const TEST_RESULTS_STORAGE_KEY = 'lastTestResults';
   
   // Загрузка теста и извлечение вопросов
   useEffect(() => {
@@ -241,16 +306,11 @@ export default function TestStartPage() {
       console.log('Haptic feedback not supported');
     }
     
-    // Автоматический переход к следующему вопросу через 1.5 секунды
+    // Автоматический переход к следующему вопросу через 1.5 секунды, только если не последний вопрос
     if (currentIndex < questions.length - 1) {
       setTimeout(() => {
         handleNextQuestion();
       }, 1500);
-    } else if (currentIndex === questions.length - 1) {
-      // Если это последний вопрос, показываем результаты через 2 секунды
-      setTimeout(() => {
-        handleFinishTest();
-      }, 2000);
     }
   };
   
@@ -332,11 +392,95 @@ export default function TestStartPage() {
   
   // Завершение теста
   const handleFinishTest = () => {
-    setPageState(TestPageState.RESULT);
+    console.log('Завершение теста - установка состояния на RESULT');
+    
+    // Принудительно очищаем все таймеры
+    try {
+      const highestTimeoutId = setTimeout(() => {});
+      for (let i = 0; i < highestTimeoutId; i++) {
+        clearTimeout(i);
+      }
+    } catch (error) {
+      console.error('Ошибка при очистке таймеров:', error);
+    }
+    
+    // Сохраняем результаты в localStorage
+    try {
+      const results = calculateResults();
+      const testResultsData = {
+        testId: params.id,
+        results,
+        answers: userAnswers,
+        timestamp: new Date().toISOString()
+      };
+      
+      localStorage.setItem(TEST_RESULTS_STORAGE_KEY, JSON.stringify(testResultsData));
+      console.log('Результаты сохранены в localStorage:', testResultsData);
+    } catch (error) {
+      console.error('Ошибка при сохранении результатов в localStorage:', error);
+    }
+    
+    // Если пользователь авторизован, сохраняем результаты в БД
     if (user) {
       saveResults();
     }
+    
+    // Важно: устанавливаем состояние страницы в RESULT в конце
+    // чтобы все операции были выполнены к этому моменту
+    setPageState(TestPageState.RESULT);
+    
+    // Добавляем задержку для проверки
+    setTimeout(() => {
+      console.log('Текущее состояние после задержки:', pageState);
+      // Дополнительная проверка - если состояние не изменилось на RESULT, 
+      // принудительно устанавливаем его снова
+      if (pageState !== TestPageState.RESULT) {
+        console.log('Повторная установка состояния на RESULT');
+        setPageState(TestPageState.RESULT);
+      }
+    }, 100);
   };
+  
+  // Проверка сохраненных результатов при первой загрузке
+  useEffect(() => {
+    try {
+      const savedResultsJson = localStorage.getItem(TEST_RESULTS_STORAGE_KEY);
+      if (savedResultsJson) {
+        const savedResults = JSON.parse(savedResultsJson);
+        
+        // Проверяем, что сохраненные результаты относятся к текущему тесту
+        if (savedResults.testId === params.id) {
+          // Проверяем, что результаты не старше 1 часа
+          const savedTime = new Date(savedResults.timestamp).getTime();
+          const currentTime = new Date().getTime();
+          const oneHourInMs = 60 * 60 * 1000;
+          
+          if (currentTime - savedTime < oneHourInMs) {
+            console.log('Восстановление сохраненных результатов для теста:', params.id);
+            
+            // Восстанавливаем ответы пользователя
+            if (savedResults.answers && savedResults.answers.length > 0) {
+              setUserAnswers(savedResults.answers);
+              
+              // Устанавливаем состояние на отображение результатов
+              setPageState(TestPageState.RESULT);
+              return; // Важно - прерываем дальнейшее выполнение эффекта
+            }
+          } else {
+            // Результаты устарели, удаляем их
+            console.log('Удаление устаревших результатов');
+            localStorage.removeItem(TEST_RESULTS_STORAGE_KEY);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Ошибка при проверке сохраненных результатов:', error);
+    }
+    
+    // Если нет сохраненных результатов, загружаем тест напрямую через useEffect из начала компонента
+    // Используем состояние LOADING, это запустит первый useEffect, который загрузит тест
+    setPageState(TestPageState.LOADING);
+  }, [params.id]);
   
   // Расчет результатов
   const calculateResults = () => {
@@ -448,12 +592,52 @@ export default function TestStartPage() {
   
   // Компонент с результатами теста
   if (pageState === TestPageState.RESULT) {
-    const results = calculateResults();
+    console.log('Отображение компонента с результатами теста');
+    
+    // Используем локальную функцию расчета, не зависящую от глобального состояния
+    const getTestResults = () => {
+      try {
+        const totalQuestions = questions.length || userAnswers.length;
+        const correctAnswers = userAnswers.filter(a => a.isCorrect).length;
+        const score = Math.round((correctAnswers / totalQuestions) * 10);
+        
+        return {
+          totalQuestions,
+          correctAnswers,
+          score,
+          percentage: Math.round((correctAnswers / totalQuestions) * 100)
+        };
+      } catch (e) {
+        console.error('Ошибка при расчете результатов:', e);
+        return {
+          totalQuestions: 0,
+          correctAnswers: 0,
+          score: 0,
+          percentage: 0
+        };
+      }
+    };
+    
+    const results = getTestResults();
+    
+    // Функция для очистки результатов
+    const handleClearResults = () => {
+      localStorage.removeItem(TEST_RESULTS_STORAGE_KEY);
+      router.push('/tests');
+    };
     
     return (
       <div className="min-h-screen py-8 pb-24 bg-white">
         <div className="app-container h-full">
           <h1 className="text-2xl font-bold mb-6 text-center">Результаты теста</h1>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-sm text-blue-700 flex items-start">
+            <div className="text-blue-500 mr-3 mt-1 flex-shrink-0">ℹ️</div>
+            <div>
+              <p className="font-medium mb-1">Вы завершили тест!</p>
+              <p>Ваш результат сохранен и будет доступен при перезагрузке страницы в течение 1 часа.</p>
+            </div>
+          </div>
           
           <div className="card text-center mb-6 p-6">
             <div 
@@ -482,19 +666,6 @@ export default function TestStartPage() {
             
             <div className="border-t border-neutral-200 pt-4 mt-4">
               <p className="font-medium">Оценка: {results.score}/10</p>
-              {user ? (
-                <p className="text-sm text-neutral-500 mt-2">
-                  {resultSaved 
-                    ? 'Результаты сохранены в вашем профиле' 
-                    : savingResult 
-                    ? 'Сохранение результатов...' 
-                    : 'Результаты будут сохранены в вашем профиле'}
-                </p>
-              ) : (
-                <p className="text-sm text-primary-600 mt-2">
-                  Войдите в систему, чтобы сохранять результаты тестов
-                </p>
-              )}
             </div>
           </div>
           
@@ -511,6 +682,13 @@ export default function TestStartPage() {
               className="btn w-full"
             >
               Найти больше тестов
+            </button>
+            
+            <button
+              onClick={handleClearResults}
+              className="btn btn-text w-full text-red-500"
+            >
+              Очистить результаты
             </button>
           </div>
         </div>
@@ -676,7 +854,7 @@ export default function TestStartPage() {
               ) : (
                 <button
                   onClick={handleFinishTest}
-                  className="px-4 py-2 rounded-md bg-primary-600 text-white hover:bg-primary-700"
+                  className="px-4 py-2 rounded-md bg-primary-600 text-white hover:bg-primary-700 font-medium"
                 >
                   Завершить тест
                 </button>
