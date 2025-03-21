@@ -31,12 +31,6 @@ export default function Home() {
               >
                 Создать тест
               </Link>
-              <Link
-                href="/tests"
-                className="btn-secondary px-6 py-3 text-base transition-all"
-              >
-                Найти тесты
-              </Link>
             </div>
           </div>
         </div>
