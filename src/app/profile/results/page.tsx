@@ -66,7 +66,8 @@ export default function ResultsPage() {
         // Вычисляем статистику для каждого теста
         const testsWithResults: TestWithResults[] = [];
         
-        for (const testData of testMap.values()) {
+        // Преобразуем значения Map в массив и итерируем по нему
+        Array.from(testMap.values()).forEach(testData => {
           // Сортируем результаты по дате (от новых к старым)
           testData.results.sort((a, b) => 
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -81,7 +82,7 @@ export default function ResultsPage() {
           testData.attemptCount = testData.results.length;
           
           testsWithResults.push(testData);
-        }
+        });
         
         // Сортируем тесты по дате последней попытки
         testsWithResults.sort((a, b) => 

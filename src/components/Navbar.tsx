@@ -16,14 +16,20 @@ const isAdmin = (email: string | null | undefined) => {
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
-  const { getUnreadNotifications } = useNotifications();
+  const { user, signOut, loading: authLoading } = useAuth();
+  const { getUnreadNotifications, loading: notificationsLoading } = useNotifications();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [activeMenuItem, setActiveMenuItem] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Устанавливаем флаг инициализации после первой отрисовки
+  useEffect(() => {
+    setIsInitialized(true);
+  }, []);
 
   // Закрываем меню при навигации
   useEffect(() => {
@@ -113,7 +119,7 @@ export default function Navbar() {
 
   // Получаем инициалы пользователя
   const getUserInitials = () => {
-    if (user?.name) {
+    if (user && 'name' in user && typeof user.name === 'string' && user.name) {
       const nameParts = user.name.split(' ');
       if (nameParts.length > 1) {
         return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
@@ -133,6 +139,11 @@ export default function Navbar() {
     { name: 'Уведомления', href: '/profile/notifications', icon: FaBell, badge: unreadNotifications },
     ...(userIsAdmin ? [{ name: 'Админ панель', href: '/admin', icon: FaUserCog }] : []),
   ];
+
+  // Если компонент еще не инициализирован или данные загружаются, отображаем заглушку
+  if (!isInitialized || authLoading || notificationsLoading) {
+    return <div className="h-16 bg-white shadow-sm"></div>;
+  }
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50">
@@ -209,8 +220,8 @@ export default function Navbar() {
                       transition={{ duration: 0.2 }}
                     >
                       <div className="px-4 py-3 text-sm text-neutral-700 border-b border-neutral-100 bg-neutral-50">
-                        <p className="font-medium">{user.name || 'Пользователь'}</p>
-                        <p className="text-xs truncate mt-1 text-neutral-500">{user.email}</p>
+                        <p className="font-medium">{user && 'name' in user && typeof user.name === 'string' ? user.name : 'Пользователь'}</p>
+                        <p className="text-xs truncate mt-1 text-neutral-500">{user?.email || ''}</p>
                       </div>
                       <div className="py-1">
                         <Link 
@@ -371,8 +382,8 @@ export default function Navbar() {
                         {getUserInitials()}
                       </div>
                       <div>
-                        <div className="text-base font-medium">{user.name || 'Пользователь'}</div>
-                        <div className="text-xs text-neutral-500 truncate max-w-[180px]">{user.email}</div>
+                        <div className="text-base font-medium">{user && 'name' in user && typeof user.name === 'string' ? user.name : 'Пользователь'}</div>
+                        <div className="text-xs text-neutral-500 truncate max-w-[180px]">{user?.email || ''}</div>
                       </div>
                     </div>
                   </motion.div>

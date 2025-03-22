@@ -62,8 +62,22 @@ const TestDetailPage = () => {
         setResults(userResults);
         
         // Анализируем ответы и создаем статистику по вопросам
-        if (testData && testData.questions && userResults.length > 0) {
-          const stats = testData.questions.map((question: any, index: number) => {
+        if (testData && testData.content && userResults.length > 0) {
+          // Получаем вопросы из content (может быть в разных форматах)
+          let questions: any[] = [];
+          try {
+            if (typeof testData.content === 'string') {
+              const parsedContent = JSON.parse(testData.content);
+              questions = Array.isArray(parsedContent) ? parsedContent : parsedContent.questions || [];
+            } else if (typeof testData.content === 'object') {
+              questions = Array.isArray(testData.content) ? testData.content : testData.content.questions || [];
+            }
+          } catch (e) {
+            console.error('Ошибка при парсинге вопросов:', e);
+            return;
+          }
+
+          const stats = questions.map((question: any, index: number) => {
             // Счетчик правильных ответов на этот вопрос
             const correctAnswers = userResults.filter(result => {
               const userAnswer = result.answers[question.id];

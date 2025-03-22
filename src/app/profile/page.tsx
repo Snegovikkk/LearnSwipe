@@ -43,29 +43,38 @@ export default function ProfilePage() {
 
   // Загружаем данные пользователя при монтировании компонента
   useEffect(() => {
-    if (user) {
-      // Загружаем статистику тестов пользователя
-      async function loadTestStats() {
-        try {
-          const userTests = await getUserTests(user.id);
-          const userResults = await getUserResults(user.id);
-          
-          if (userTests) {
-            setTestStats({
-              created: userTests.length,
-              taken: userResults?.length || 0
-            });
-          }
-          setIsStatsLoaded(true);
-        } catch (err) {
-          console.error('Ошибка при загрузке статистики тестов:', err);
-          setIsStatsLoaded(true);
+    // Объявляем функцию до условия if
+    const loadTestStats = async () => {
+      try {
+        if (!user || !user.id) return;
+        
+        const userTests = await getUserTests(user.id);
+        const userResults = await getUserResults(user.id);
+        
+        if (userTests) {
+          setTestStats({
+            created: userTests.length,
+            taken: userResults?.length || 0
+          });
         }
+        setIsStatsLoaded(true);
+      } catch (err) {
+        console.error('Ошибка при загрузке статистики:', err);
+        setTestStats({
+          created: 0,
+          taken: 0
+        });
+        setIsStatsLoaded(true);
       }
-      
+    };
+
+    if (user) {
+      // Вызываем функцию загрузки статистики
       loadTestStats();
+    } else {
+      setIsStatsLoaded(true);
     }
-  }, [user, getUserTests, getUserResults]);
+  }, [user]);
 
   const handleLogout = async () => {
     await signOut();

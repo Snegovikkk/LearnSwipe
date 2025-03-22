@@ -172,17 +172,17 @@ export default function TestHistoryPage() {
                     <div className="w-full max-w-xs bg-neutral-200 rounded-full h-2">
                       <div 
                         className={`h-2 rounded-full ${
-                          (item.score / item.maxScore) > 0.7 
+                          (item.score && item.maxScore && (item.score / item.maxScore) > 0.7)
                             ? 'bg-green-500' 
-                            : (item.score / item.maxScore) > 0.4 
+                            : (item.score && item.maxScore && (item.score / item.maxScore) > 0.4)
                               ? 'bg-yellow-500' 
                               : 'bg-red-500'
                         }`}
-                        style={{ width: `${(item.score / item.maxScore) * 100}%` }}
+                        style={{ width: `${item.score && item.maxScore ? (item.score / item.maxScore) * 100 : 0}%` }}
                       ></div>
                     </div>
                     <span className="ml-3 text-sm font-medium">
-                      {item.score}/{item.maxScore}
+                      {item.score || 0}/{item.maxScore || 10}
                     </span>
                   </div>
                 ) : (
@@ -219,8 +219,13 @@ export default function TestHistoryPage() {
                 {Math.round(
                   mockHistory
                     .filter(item => item.type === 'completed')
-                    .reduce((acc, item) => acc + (item.score / item.maxScore * 100), 0) / 
-                  mockHistory.filter(item => item.type === 'completed').length
+                    .reduce((acc, item) => {
+                      if (item.score && item.maxScore) {
+                        return acc + (item.score / item.maxScore * 100);
+                      }
+                      return acc;
+                    }, 0) / 
+                  mockHistory.filter(item => item.type === 'completed').length || 1
                 )}%
               </div>
             </div>

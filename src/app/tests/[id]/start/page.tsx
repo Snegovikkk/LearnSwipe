@@ -249,8 +249,8 @@ export default function TestStartPage() {
   
   // Эффект для запуска таймера
   useEffect(() => {
-    // Запускаем таймер только если тест загружен и вопросы есть
-    if (pageState !== TestPageState.READY || pageState === TestPageState.RESULT) return;
+    // Запускаем таймер только если тест готов к прохождению и не в режиме отображения результатов
+    if (pageState !== TestPageState.TEST) return;
     
     const timer = setInterval(() => {
       setRemainingTime((prev) => {
@@ -380,11 +380,15 @@ export default function TestStartPage() {
     
     setSavingResult(true);
     try {
+      const answersObj = Object.fromEntries(
+        userAnswers.map(answer => [answer.questionId, answer.answerId || ''])
+      );
+      
       await saveTestResult({
-        user_id: user.id,
-        test_id: test.id,
+        userId: user.id,
+        testId: test.id,
         score: results.score,
-        answers: JSON.stringify(userAnswers)
+        answers: answersObj
       });
       setResultSaved(true);
     } catch (err) {
@@ -424,16 +428,6 @@ export default function TestStartPage() {
   // Завершение теста
   const handleFinishTest = () => {
     console.log('Завершение теста - установка состояния на RESULT');
-    
-    // Принудительно очищаем все таймеры
-    try {
-      const highestTimeoutId = setTimeout(() => {});
-      for (let i = 0; i < highestTimeoutId; i++) {
-        clearTimeout(i);
-      }
-    } catch (error) {
-      console.error('Ошибка при очистке таймеров:', error);
-    }
     
     // Сохраняем результаты в localStorage с флагом userClosed = false
     try {

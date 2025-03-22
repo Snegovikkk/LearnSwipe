@@ -6,12 +6,20 @@ import { auth } from '@/auth';
 // Список email-адресов администраторов
 const ADMIN_EMAILS = ['admin@test.com', 'admin@lume.com', 'dima@test.ru']; // Добавьте свою почту
 
+// Определение типа сессии
+interface UserSession {
+  user?: {
+    email?: string;
+  };
+}
+
 export async function GET() {
   try {
     // Проверка авторизации и прав администратора
-    const session = await getServerSession(auth);
+    const session = await getServerSession(auth) as UserSession | null;
     
-    if (!session || !session.user?.email) {
+    const userEmail = session?.user?.email;
+    if (!session || !userEmail) {
       return NextResponse.json(
         { error: 'Не авторизован' }, 
         { status: 401 }
@@ -19,7 +27,7 @@ export async function GET() {
     }
     
     // Проверка прав администратора
-    if (!ADMIN_EMAILS.includes(session.user.email)) {
+    if (!ADMIN_EMAILS.includes(userEmail)) {
       return NextResponse.json(
         { error: 'Нет прав для доступа к данной информации' }, 
         { status: 403 }
