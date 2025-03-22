@@ -3,10 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaArrowLeft, FaCheck, FaTimes, FaClock, FaChevronDown, FaChevronUp, FaSpinner, FaLightbulb } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaTimes, FaClock, FaChevronDown, FaChevronUp, FaSpinner, FaLightbulb, FaFileAlt, FaSearch, FaRedoAlt } from 'react-icons/fa';
 import { TestQuestion } from '@/lib/openai';
 import useTests from '@/hooks/useTests';
 import useAuth from '@/hooks/useAuth';
+import { toast } from 'react-hot-toast';
+import Link from 'next/link';
 
 // Добавляем стили для печати
 const printStyles = `
@@ -83,7 +85,8 @@ enum TestPageState {
   ERROR = 'error',
   NO_QUESTIONS = 'no_questions',
   READY = 'ready',
-  RESULT = 'result'
+  RESULT = 'result',
+  TEST = 'test'
 }
 
 export default function TestStartPage() {
@@ -108,6 +111,7 @@ export default function TestStartPage() {
   const [isScrolling, setIsScrolling] = useState(false);
   const [savingResult, setSavingResult] = useState(false);
   const [resultSaved, setResultSaved] = useState(false);
+  const [testResults, setTestResults] = useState<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Добавляем константу для ключа localStorage
@@ -390,6 +394,33 @@ export default function TestStartPage() {
     }
   };
   
+  // Функция для очистки результатов
+  const handleClearResults = () => {
+    try {
+      // Получаем текущие результаты из localStorage
+      const savedResultsJson = localStorage.getItem(TEST_RESULTS_STORAGE_KEY);
+      if (savedResultsJson) {
+        const savedResults = JSON.parse(savedResultsJson);
+        
+        // Обновляем флаг userClosed и сохраняем обратно
+        if (savedResults.testId === params.id) {
+          savedResults.userClosed = true;
+          localStorage.setItem(TEST_RESULTS_STORAGE_KEY, JSON.stringify(savedResults));
+        }
+      }
+      
+      // Возвращаемся к режиму прохождения теста
+      setPageState(TestPageState.TEST);
+      setCurrentIndex(0);
+      // Очищаем ответы пользователя (пустой массив)
+      setUserAnswers([]);
+      setTestResults(null);
+    } catch (error) {
+      console.error('Ошибка при очистке результатов:', error);
+      toast.error('Произошла ошибка при очистке результатов');
+    }
+  };
+  
   // Завершение теста
   const handleFinishTest = () => {
     console.log('Завершение теста - установка состояния на RESULT');
@@ -404,14 +435,15 @@ export default function TestStartPage() {
       console.error('Ошибка при очистке таймеров:', error);
     }
     
-    // Сохраняем результаты в localStorage
+    // Сохраняем результаты в localStorage с флагом userClosed = false
     try {
       const results = calculateResults();
       const testResultsData = {
         testId: params.id,
         results,
         answers: userAnswers,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        userClosed: false // Добавляем флаг, показывающий, что пользователь не закрывал результаты
       };
       
       localStorage.setItem(TEST_RESULTS_STORAGE_KEY, JSON.stringify(testResultsData));
@@ -428,17 +460,6 @@ export default function TestStartPage() {
     // Важно: устанавливаем состояние страницы в RESULT в конце
     // чтобы все операции были выполнены к этому моменту
     setPageState(TestPageState.RESULT);
-    
-    // Добавляем задержку для проверки
-    setTimeout(() => {
-      console.log('Текущее состояние после задержки:', pageState);
-      // Дополнительная проверка - если состояние не изменилось на RESULT, 
-      // принудительно устанавливаем его снова
-      if (pageState !== TestPageState.RESULT) {
-        console.log('Повторная установка состояния на RESULT');
-        setPageState(TestPageState.RESULT);
-      }
-    }, 100);
   };
   
   // Проверка сохраненных результатов при первой загрузке
@@ -462,9 +483,13 @@ export default function TestStartPage() {
             if (savedResults.answers && savedResults.answers.length > 0) {
               setUserAnswers(savedResults.answers);
               
-              // Устанавливаем состояние на отображение результатов
-              setPageState(TestPageState.RESULT);
-              return; // Важно - прерываем дальнейшее выполнение эффекта
+              // Проверяем, закрывал ли пользователь результаты
+              // Если флаг userClosed отсутствует или равен false, показываем результаты
+              if (savedResults.userClosed !== true) {
+                // Устанавливаем состояние на отображение результатов
+                setPageState(TestPageState.RESULT);
+                return; // Важно - прерываем дальнейшее выполнение эффекта
+              }
             }
           } else {
             // Результаты устарели, удаляем их
@@ -620,12 +645,6 @@ export default function TestStartPage() {
     
     const results = getTestResults();
     
-    // Функция для очистки результатов
-    const handleClearResults = () => {
-      localStorage.removeItem(TEST_RESULTS_STORAGE_KEY);
-      router.push('/tests');
-    };
-    
     return (
       <div className="min-h-screen py-8 pb-24 bg-white">
         <div className="app-container h-full">
@@ -669,26 +688,31 @@ export default function TestStartPage() {
             </div>
           </div>
           
-          <div className="space-y-4">
-            <button
-              onClick={() => router.back()}
-              className="btn btn-outline w-full"
-            >
-              Вернуться к информации о тесте
-            </button>
+          <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
+            <Link href={`/tests/${params.id}`}>
+              <button
+                className="btn btn-outline w-full sm:w-auto flex items-center gap-2"
+              >
+                <FaFileAlt className="w-4 h-4" />
+                К информации о тесте
+              </button>
+            </Link>
+            
+            <Link href="/tests">
+              <button
+                className="btn btn-outline w-full sm:w-auto flex items-center gap-2"
+              >
+                <FaSearch className="w-4 h-4" />
+                Найти другие тесты
+              </button>
+            </Link>
             
             <button
-              onClick={() => router.push('/tests')}
-              className="btn w-full"
-            >
-              Найти больше тестов
-            </button>
-            
-            <button
+              className="btn btn-outline w-full sm:w-auto flex items-center gap-2 font-medium text-black"
               onClick={handleClearResults}
-              className="btn btn-text w-full text-red-500"
             >
-              Очистить результаты
+              <FaRedoAlt className="w-4 h-4" />
+              Очистить результаты и пройти тест заново
             </button>
           </div>
         </div>

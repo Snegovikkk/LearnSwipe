@@ -66,6 +66,11 @@ export default function CreateTestPage() {
       return;
     }
     
+    if (text.length > 10000) {
+      setError('Текст слишком длинный для анализа. Максимум 10000 символов.');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     setSelectedTopic(null); // Сбрасываем выбранную тему при новом анализе
@@ -75,11 +80,28 @@ export default function CreateTestPage() {
       const analysisResult = await analyzeText(text);
       // Извлекаем topics из результата, или используем пустой массив в случае null
       const topicsArray: string[] = analysisResult?.topics || [];
+      
+      // Проверяем, получили ли мы темы
+      if (!topicsArray.length) {
+        throw new Error('Не удалось выделить темы из текста. Возможно, текст не содержит явных тематических блоков или слишком специфичен.');
+      }
+      
       // Устанавливаем темы в состояние
       setSuggestedTopics(topicsArray);
     } catch (err: any) {
       console.error('Ошибка анализа текста:', err);
-      setError(err.message || 'Не удалось проанализировать текст');
+      
+      // Устанавливаем более подробную ошибку в зависимости от типа проблемы
+      if (err.message.includes('API запрос не удался') || err.message.includes('fetch')) {
+        setError('Не удалось связаться с сервером ИИ для анализа текста. Пожалуйста, попробуйте позже.');
+      } else if (err.message.includes('выделить темы')) {
+        setError(err.message);
+      } else {
+        setError(`Не удалось проанализировать текст: ${err.message || 'неизвестная ошибка'}`);
+      }
+      
+      // Сбрасываем предложенные темы если произошла ошибка
+      setSuggestedTopics([]);
     } finally {
       setLoading(false);
     }
@@ -107,6 +129,11 @@ export default function CreateTestPage() {
       return;
     }
     
+    if (content.length > 10000) {
+      setError('Текст слишком длинный для генерации теста. Максимум 10000 символов.');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
@@ -118,7 +145,7 @@ export default function CreateTestPage() {
       
       // Проверка наличия данных
       if (!testResult) {
-        throw new Error('Не удалось получить результат генерации теста');
+        throw new Error('Не удалось получить результат генерации теста от сервера ИИ. Пожалуйста, проверьте подключение к интернету и повторите попытку.');
       }
       
       // Извлекаем вопросы из результата или используем пустой массив
@@ -126,7 +153,7 @@ export default function CreateTestPage() {
       
       // Валидация вопросов
       if (!Array.isArray(questionsArray) || questionsArray.length === 0) {
-        throw new Error('Сгенерирован пустой список вопросов, попробуйте еще раз');
+        throw new Error('Сгенерирован пустой список вопросов. Возможно, текст слишком короткий или не содержит достаточно информации для создания теста. Пожалуйста, попробуйте использовать другой текст или выбрать другую тему.');
       }
       
       console.log('Сгенерировано вопросов:', questionsArray.length);
@@ -145,12 +172,26 @@ export default function CreateTestPage() {
         explanation: q.explanation || ''
       }));
       
+      // Проверяем качество сгенерированных вопросов
+      const hasInvalidQuestions = validatedQuestions.some(
+        q => !q.question || q.question.length < 5 || q.options.length < 2 || !q.options.some(o => o.isCorrect)
+      );
+      
+      if (hasInvalidQuestions) {
+        throw new Error('Некоторые вопросы сгенерированы некорректно. Попробуйте изменить текст или тему и повторить попытку.');
+      }
+      
       // Устанавливаем вопросы в состояние
       setGeneratedQuestions(validatedQuestions);
       setStep('review');
     } catch (err: any) {
       console.error('Ошибка генерации теста:', err);
-      setError(err.message || 'Не удалось сгенерировать тест');
+      // Устанавливаем более подробную ошибку в зависимости от типа проблемы
+      if (err.message.includes('API запрос не удался') || err.message.includes('fetch')) {
+        setError('Не удалось связаться с сервером ИИ для генерации теста. Пожалуйста, попробуйте позже.');
+      } else {
+        setError(err.message || 'Не удалось сгенерировать тест. Пожалуйста, попробуйте еще раз с другим текстом.');
+      }
     } finally {
       setLoading(false);
     }
@@ -204,6 +245,11 @@ export default function CreateTestPage() {
       return;
     }
     
+    if (content.length > 10000) {
+      setError('Текст слишком длинный для генерации теста. Максимум 10000 символов.');
+      return;
+    }
+    
     if (!user || !user.id) {
       setError('Необходимо войти в систему для создания теста');
       return;
@@ -220,14 +266,14 @@ export default function CreateTestPage() {
       const testResult = await generateTest(content, testTitle, selectedTopic, questionCount);
       
       if (!testResult) {
-        throw new Error('Не удалось получить результат генерации теста');
+        throw new Error('Не удалось получить результат генерации теста от сервера ИИ. Пожалуйста, проверьте подключение к интернету и повторите попытку.');
       }
       
       // Извлекаем вопросы из результата или используем пустой массив
       const questionsArray = testResult.questions || [];
       
       if (!Array.isArray(questionsArray) || questionsArray.length === 0) {
-        throw new Error('Сгенерирован пустой список вопросов, попробуйте еще раз');
+        throw new Error('Сгенерирован пустой список вопросов. Возможно, текст слишком короткий или не содержит достаточно информации для создания теста. Пожалуйста, попробуйте использовать другой текст или выбрать другую тему.');
       }
       
       console.log('Быстро сгенерировано вопросов:', questionsArray.length);
@@ -246,6 +292,15 @@ export default function CreateTestPage() {
         explanation: q.explanation || ''
       }));
       
+      // Проверяем качество сгенерированных вопросов
+      const hasInvalidQuestions = validatedQuestions.some(
+        q => !q.question || q.question.length < 5 || q.options.length < 2 || !q.options.some(o => o.isCorrect)
+      );
+      
+      if (hasInvalidQuestions) {
+        throw new Error('Некоторые вопросы сгенерированы некорректно. Попробуйте изменить текст или тему и повторить попытку.');
+      }
+      
       // Создаем тест в базе данных
       const savedTest = await createTest({
         userId: user.id,
@@ -255,14 +310,21 @@ export default function CreateTestPage() {
       });
       
       if (!savedTest) {
-        throw new Error('Не удалось сохранить тест');
+        throw new Error('Не удалось сохранить тест в базе данных. Пожалуйста, попробуйте позже.');
       }
       
       // Перенаправляем на страницу прохождения теста
       router.push(`/tests/${savedTest.id}/start`);
     } catch (err: any) {
       console.error('Ошибка быстрого создания теста:', err);
-      setError(err.message || 'Не удалось создать и запустить тест');
+      // Более детальная обработка ошибок
+      if (err.message.includes('API запрос не удался') || err.message.includes('fetch')) {
+        setError('Не удалось связаться с сервером ИИ для генерации теста. Пожалуйста, попробуйте позже.');
+      } else if (err.message.includes('базе данных')) {
+        setError(err.message);
+      } else {
+        setError(err.message || 'Не удалось создать и запустить тест. Пожалуйста, попробуйте позже.');
+      }
       setQuickCreating(false);
     }
   };
@@ -382,32 +444,48 @@ export default function CreateTestPage() {
                 <textarea
                   value={content}
                   onChange={(e) => {
-                    setContent(e.target.value);
-                    if (e.target.value.length > 100) {
-                      setSuggestedTopics([]);
+                    const newText = e.target.value;
+                    if (newText.length <= 10000) {
+                      setContent(newText);
+                      if (newText.length > 100) {
+                        setSuggestedTopics([]);
+                      }
                     }
                   }}
                   rows={10}
                   className="w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                   placeholder="Введите или вставьте текст, на основе которого будут сгенерированы вопросы"
+                  maxLength={10000}
                 ></textarea>
               )}
               
               <div className="flex justify-between mt-2">
                 <span className="text-sm text-neutral-500">
-                  {content.length} символов {content.length < 100 && '(минимум 100)'}
+                  {content.length} / 10000 символов {content.length < 100 && '(минимум 100)'}
                 </span>
                 <button
                   type="button"
                   onClick={() => handleAnalyzeText()}
-                  disabled={loading || content.length < 100}
+                  disabled={loading || content.length < 100 || content.length > 10000}
                   className={`text-sm text-primary-600 hover:text-primary-500 ${
-                    loading || content.length < 100 ? 'opacity-50 cursor-not-allowed' : ''
+                    loading || content.length < 100 || content.length > 10000 ? 'opacity-50 cursor-not-allowed' : ''
                   }`}
                 >
-                  Проанализировать текст
+                  {loading ? 'Анализ текста...' : 'Проанализировать текст'}
                 </button>
               </div>
+              
+              {/* Добавляем подсказку о том, почему кнопка может быть неактивна */}
+              {content.length < 100 && (
+                <p className="text-xs text-amber-600 mt-1">
+                  Введите не менее 100 символов, чтобы начать анализ текста
+                </p>
+              )}
+              {content.length > 10000 && (
+                <p className="text-xs text-amber-600 mt-1">
+                  Текст слишком длинный. Максимальная длина для анализа - 10000 символов
+                </p>
+              )}
             </div>
             
             {suggestedTopics.length > 0 && (
@@ -479,9 +557,9 @@ export default function CreateTestPage() {
               <button
                 type="button"
                 onClick={handleGenerateTest}
-                disabled={loading || content.length < 100 || !title}
+                disabled={loading || content.length < 100 || content.length > 10000 || !title}
                 className={`px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                  loading || content.length < 100 || !title ? 'opacity-50 cursor-not-allowed' : ''
+                  loading || content.length < 100 || content.length > 10000 || !title ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
                 {loading ? (

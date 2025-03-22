@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const finalTitle = selectedTopic ? `${title} (${selectedTopic})` : title;
     
     // Генерируем вопросы
-    const questions = await generateTest(text, finalTitle, questionsCount);
+    const questions = await generateTest(text, finalTitle, selectedTopic, questionsCount);
 
     // Возвращаем результат
     return NextResponse.json({ 
