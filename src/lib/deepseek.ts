@@ -383,62 +383,79 @@ function generateDemoQuestions(topic: string, count: number = 5): TestQuestion[]
     ]
   };
 
-  // Определение категории вопросов на основе темы
-  let category = "default";
-  const lowerTopic = topic.toLowerCase();
+  // Определение наиболее подходящего набора вопросов
+  let bestMatch = "default"; // По умолчанию используем общие вопросы
+  let bestMatchScore = 0;
+  
+  // Проверяем, какая категория вопросов лучше всего подходит к теме
+  for (const category in templates) {
+    // Используем простое совпадение слов для определения темы
+    const score = countMatchingWords(topic.toLowerCase(), category);
+    if (score > bestMatchScore) {
+      bestMatchScore = score;
+      bestMatch = category;
+    }
+  }
+  
+  // Получаем набор вопросов
+  let questions = templates[bestMatch] || templates["programming"];
+  
+  // Если запрошено больше вопросов, чем есть в шаблоне, 
+  // генерируем дополнительные вопросы на основе имеющихся
+  if (count > questions.length) {
+    const additionalCount = count - questions.length;
+    
+    for (let i = 0; i < additionalCount; i++) {
+      // Клонируем существующий вопрос с небольшими изменениями
+      const sourceQuestion = questions[i % questions.length];
+      const newQuestion = { ...sourceQuestion };
+      
+      // Модифицируем ID и вопрос
+      newQuestion.id = String(questions.length + i + 1);
+      newQuestion.question = `${newQuestion.question} (вариант ${i + 1})`;
+      
+      // Добавляем в массив
+      questions.push(newQuestion);
+    }
+  }
+  // Если запрошено меньше вопросов, возвращаем только часть
+  else if (count < questions.length) {
+    questions = questions.slice(0, count);
+  }
+  
+  return questions;
+}
 
-  if (lowerTopic.includes("программирование") || lowerTopic.includes("код") || 
-      lowerTopic.includes("разработка") || lowerTopic.includes("javascript") || 
-      lowerTopic.includes("python") || lowerTopic.includes("веб")) {
-    category = "programming";
-  } else if (lowerTopic.includes("история") || lowerTopic.includes("война") || 
-             lowerTopic.includes("революция") || lowerTopic.includes("исторический")) {
-    category = "history";
-  } else if (lowerTopic.includes("наука") || lowerTopic.includes("физика") || 
-             lowerTopic.includes("химия") || lowerTopic.includes("биология") || 
-             lowerTopic.includes("астрономия")) {
-    category = "science";
-  } else if (lowerTopic.includes("литература") || lowerTopic.includes("книга") || 
-             lowerTopic.includes("поэзия") || lowerTopic.includes("роман") || 
-             lowerTopic.includes("писатель")) {
-    category = "literature";
-  }
-
-  // Получаем соответствующие шаблоны вопросов
-  const questionTemplates = templates[category];
+// Вспомогательная функция для подсчета совпадающих слов
+function countMatchingWords(text: string, pattern: string): number {
+  const textWords = text.toLowerCase().split(/\s+/);
+  const patternWords = pattern.toLowerCase().split(/\s+/);
   
-  // Если нужно меньше вопросов, чем в шаблоне, выбираем случайные
-  if (count < questionTemplates.length) {
-    const shuffled = [...questionTemplates].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, count).map((q, index) => ({
-      ...q,
-      id: (index + 1).toString()
-    }));
+  let count = 0;
+  for (const textWord of textWords) {
+    if (patternWords.includes(textWord)) {
+      count++;
+    }
   }
   
-  // Если нужно больше вопросов, дублируем некоторые с небольшими изменениями
-  const result = [...questionTemplates];
-  while (result.length < count) {
-    const original = questionTemplates[result.length % questionTemplates.length];
-    result.push({
-      ...original,
-      id: (result.length + 1).toString(),
-      question: "Еще один вопрос: " + original.question
-    });
-  }
-  
-  return result;
+  return count;
 }
 
 // Функция для генерации теста на основе текста
-export async function generateTest(text: string, title: string, numberOfQuestions: number = 5): Promise<TestQuestion[]> {
+export async function generateTest(text: string, title: string, selectedTopic: string | null = null, numberOfQuestions: number = 5): Promise<TestQuestion[]> {
   try {
+    // Определяем, есть ли выбранная пользователем тема
+    const topicFocus = selectedTopic 
+      ? `Особый фокус должен быть на теме: "${selectedTopic}". Большинство вопросов должны быть связаны с этой темой.`
+      : '';
+      
     const prompt = `
     Создай тест из ${numberOfQuestions} вопросов на основе следующего текста:
     
     "${text}"
     
     Тема теста: "${title}"
+    ${topicFocus}
     
     Формат ответа должен быть в JSON:
     [
@@ -504,8 +521,17 @@ export async function analyzeText(text: string): Promise<string[]> {
   try {
     try {
       const messages = [
-        { role: "system", content: "Ты - помощник для анализа текста. Извлеки 5 ключевых тем или концепций из текста." },
-        { role: "user", content: `Проанализируй следующий текст и выдели 5 основных тем или концепций: "${text}"` }
+        { 
+          role: "system", 
+          content: "Ты - помощник для анализа образовательных текстов. Твоя задача - извлечь из текста 5-7 ключевых тем или концепций, которые могут быть интересны для создания учебного теста. Темы должны быть конкретными и релевантными содержанию. Стремись выделить разнообразные аспекты текста." 
+        },
+        { 
+          role: "user", 
+          content: `Проанализируй следующий текст и выдели 5-7 основных тем или концепций, по которым можно создать образовательный тест. Представь результат в виде маркированного списка.
+          
+Текст для анализа:
+"${text.substring(0, 5000)}"` // Ограничиваем длину текста для API
+        }
       ];
       
       const content = await callDeepSeekAPI(messages);
@@ -513,35 +539,104 @@ export async function analyzeText(text: string): Promise<string[]> {
 
       // Разбиваем текст на строки и фильтруем пустые
       const topics = content
+        .replace(/^\s*[-•*]\s*/gm, '') // Удаляем маркеры списка
         .split('\n')
         .map(line => line.replace(/^\d+\.\s*/, '').trim()) // Удаляем нумерацию в начале строки
-        .filter(line => line.length > 0);
+        .filter(line => line.length > 0 && line.length < 50); // Фильтруем пустые строки и слишком длинные (которые, вероятно, не темы)
 
-      return topics.slice(0, 5); // Берем только первые 5 тем
+      return topics.slice(0, 7); // Берем только первые 7 тем
     } catch (apiError) {
       console.error("Ошибка API DeepSeek при анализе текста, использую локальную генерацию:", apiError);
       
-      // Если API недоступен, извлекаем ключевые слова из текста
-      // Простой алгоритм для примера - находим самые длинные слова в тексте
-      const words = text
-        .toLowerCase()
-        .replace(/[^\wа-яё\s]/gi, '')
-        .split(/\s+/)
-        .filter(w => w.length > 4)
-        .filter((w, i, self) => self.indexOf(w) === i); // уникальные слова
-      
-      // Сортируем по длине и берем до 5 слов
-      const sortedWords = words.sort((a, b) => b.length - a.length).slice(0, 5);
-      
-      // Если слов слишком мало, добавляем стандартные темы
-      const defaultTopics = ["Основная тема", "Дополнительная информация", "Ключевые моменты", "Важные детали", "Общий контекст"];
-      
-      return sortedWords.length >= 3 ? sortedWords.map(w => w.charAt(0).toUpperCase() + w.slice(1)) : defaultTopics;
+      // Если API недоступен, используем улучшенный алгоритм извлечения ключевых тем
+      return generateLocalTopics(text);
     }
   } catch (error) {
     console.error("Ошибка при анализе текста:", error);
     // В случае ошибки возвращаем стандартные темы
-    return ["Тема 1", "Тема 2", "Тема 3", "Тема 4", "Тема 5"];
+    return generateLocalTopics(text);
+  }
+}
+
+// Функция для локального выделения тем из текста
+function generateLocalTopics(text: string): string[] {
+  // Стандартные темы для случая, если не удается извлечь из текста
+  const defaultTopics = [
+    "Основные концепции", 
+    "Ключевые понятия", 
+    "Практическое применение", 
+    "Теоретические основы", 
+    "История вопроса",
+    "Современные подходы",
+    "Перспективы развития"
+  ];
+  
+  try {
+    // Удаляем знаки препинания и приводим к нижнему регистру
+    const cleanedText = text
+      .toLowerCase()
+      .replace(/[^\wа-яё\s]/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    
+    // Разбиваем на слова
+    const words = cleanedText.split(' ');
+    
+    // Исключаем стоп-слова (союзы, предлоги и т.д.)
+    const stopWords = [
+      'и', 'в', 'на', 'с', 'по', 'к', 'у', 'от', 'для', 'из', 'о', 'об', 'за', 'над', 'под',
+      'при', 'про', 'без', 'до', 'через', 'а', 'но', 'да', 'или', 'либо', 'ни', 'как', 'то',
+      'что', 'не', 'ли', 'если', 'бы', 'вот', 'это', 'тот', 'там', 'так', 'только', 'еще',
+      'уже', 'теперь', 'всегда', 'всего', 'весь', 'все', 'вся', 'эти', 'эта', 'кто', 'где',
+      'когда', 'почему', 'зачем', 'который', 'какой', 'каждый', 'чтобы', 'потому', 'поэтому'
+    ];
+    
+    // Считаем частоту каждого слова
+    const wordFrequency: Record<string, number> = {};
+    words.forEach(word => {
+      if (word.length > 3 && !stopWords.includes(word)) {
+        wordFrequency[word] = (wordFrequency[word] || 0) + 1;
+      }
+    });
+    
+    // Находим наиболее часто встречающиеся слова
+    const sortedWords = Object.entries(wordFrequency)
+      .sort((a, b) => b[1] - a[1])
+      .map(entry => entry[0])
+      .slice(0, 15);
+    
+    // Группируем близкие по смыслу слова (простой алгоритм - слова, начинающиеся одинаково)
+    const wordGroups: Record<string, string[]> = {};
+    sortedWords.forEach(word => {
+      const prefix = word.substring(0, 4); // Используем первые 4 символа как ключ группы
+      if (!wordGroups[prefix]) {
+        wordGroups[prefix] = [];
+      }
+      wordGroups[prefix].push(word);
+    });
+    
+    // Формируем темы из групп слов
+    const topics: string[] = [];
+    Object.values(wordGroups).forEach(group => {
+      if (group.length > 0) {
+        // Используем самое длинное слово в группе как основу темы
+        const baseWord = group.sort((a, b) => b.length - a.length)[0];
+        // Формируем тему с заглавной буквы
+        const topic = baseWord.charAt(0).toUpperCase() + baseWord.slice(1);
+        topics.push(topic);
+      }
+    });
+    
+    // Если нашли достаточно тем, возвращаем их
+    if (topics.length >= 5) {
+      return topics.slice(0, 7);
+    }
+    
+    // Иначе дополняем стандартными темами
+    return [...topics, ...defaultTopics].slice(0, 7);
+  } catch (error) {
+    console.error("Ошибка при локальном анализе текста:", error);
+    return defaultTopics;
   }
 }
 

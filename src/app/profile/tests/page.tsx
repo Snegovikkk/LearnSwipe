@@ -6,6 +6,31 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import useAuth from '@/hooks/useAuth';
 import useTests from '@/hooks/useTests';
+import { motion } from 'framer-motion';
+
+// Компонент скелетона для карточек тестов
+const TestCardSkeleton = () => (
+  <div className="bg-white rounded-lg shadow-md overflow-hidden border border-neutral-200">
+    <div className="p-6">
+      <div className="h-6 bg-neutral-200 rounded w-3/4 mb-2 animate-pulse"></div>
+      <div className="h-4 bg-neutral-200 rounded w-full mb-1 animate-pulse"></div>
+      <div className="h-4 bg-neutral-200 rounded w-2/3 mb-1 animate-pulse"></div>
+      <div className="h-4 bg-neutral-200 rounded w-5/6 mb-4 animate-pulse"></div>
+      
+      <div className="flex justify-between items-center mb-4">
+        <div className="h-3 bg-neutral-200 rounded w-1/4 animate-pulse"></div>
+        <div className="h-3 bg-neutral-200 rounded w-1/5 animate-pulse"></div>
+      </div>
+      
+      <div className="pt-4 border-t border-neutral-100">
+        <div className="flex">
+          <div className="h-8 bg-neutral-200 rounded flex-1 mr-2 animate-pulse"></div>
+          <div className="h-8 bg-neutral-200 rounded flex-1 ml-2 animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 export default function UserTestsPage() {
   const router = useRouter();
@@ -19,6 +44,7 @@ export default function UserTestsPage() {
   const [activeTab, setActiveTab] = useState<'created' | 'taken'>(initialTab);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Загрузка тестов и результатов пользователя
   useEffect(() => {
@@ -33,9 +59,13 @@ export default function UserTestsPage() {
         // Загружаем результаты пройденных тестов
         const userResults = await getUserResults(user.id);
         setResults(userResults || []);
+        
+        setError(null);
       } catch (err: any) {
         console.error('Ошибка при загрузке данных:', err);
         setError(err.message || 'Не удалось загрузить данные');
+      } finally {
+        setInitialLoadComplete(true);
       }
     }
     
@@ -76,6 +106,13 @@ export default function UserTestsPage() {
     return results.find(result => result.test_id === testId);
   };
 
+  // Генерация скелетонов для загрузки
+  const renderSkeletons = (count: number) => {
+    return Array(count).fill(0).map((_, index) => (
+      <TestCardSkeleton key={`skeleton-${index}`} />
+    ));
+  };
+
   return (
     <ProtectedRoute>
       <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
@@ -100,7 +137,7 @@ export default function UserTestsPage() {
                   : 'text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
               }`}
             >
-              Созданные ({tests.filter(test => test.user_id === user?.id).length})
+              Созданные ({initialLoadComplete ? tests.filter(test => test.user_id === user?.id).length : '...'})
             </button>
             <button
               onClick={() => setActiveTab('taken')}
@@ -110,7 +147,7 @@ export default function UserTestsPage() {
                   : 'text-neutral-500 hover:text-neutral-700 hover:border-neutral-300'
               }`}
             >
-              Пройденные ({results.length})
+              Пройденные ({initialLoadComplete ? results.length : '...'})
             </button>
           </nav>
         </div>
@@ -123,14 +160,12 @@ export default function UserTestsPage() {
         )}
         
         {/* Индикатор загрузки */}
-        {loading && (
-          <div className="flex justify-center py-8">
-            <div className="w-12 h-12 border-4 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+        {loading && !initialLoadComplete ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {renderSkeletons(6)}
           </div>
-        )}
-        
-        {/* Список тестов */}
-        {!loading && (
+        ) : (
+          // Список тестов
           activeTab === 'created' ? (
             tests.filter(test => test.user_id === user?.id).length === 0 ? (
               <div className="text-center py-12 border-2 border-dashed border-neutral-300 rounded-lg">
@@ -143,13 +178,21 @@ export default function UserTestsPage() {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 {tests
                   .filter(test => test.user_id === user?.id)
                   .map(test => (
-                    <div 
+                    <motion.div 
                       key={test.id}
                       className="bg-white rounded-lg shadow-md overflow-hidden border border-neutral-200 hover:shadow-lg transition-shadow"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
                     >
                       <div className="p-6">
                         <h2 className="text-lg font-semibold mb-2 line-clamp-2">{test.title}</h2>
@@ -178,9 +221,9 @@ export default function UserTestsPage() {
                           </button>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-              </div>
+              </motion.div>
             )
           ) : (
             results.length === 0 ? (
@@ -194,13 +237,21 @@ export default function UserTestsPage() {
                 </Link>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <motion.div 
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              >
                 {results.map(result => {
                   const test = tests.find(t => t.id === result.test_id);
                   return test ? (
-                    <div 
+                    <motion.div 
                       key={result.id}
                       className="bg-white rounded-lg shadow-md overflow-hidden border border-neutral-200 hover:shadow-lg transition-shadow"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
                     >
                       <div className="p-6">
                         <h2 className="text-lg font-semibold mb-2 line-clamp-2">{test.title}</h2>
@@ -231,10 +282,10 @@ export default function UserTestsPage() {
                           </button>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   ) : null;
                 })}
-              </div>
+              </motion.div>
             )
           )
         )}

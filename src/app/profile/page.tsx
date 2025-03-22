@@ -8,6 +8,17 @@ import useTests from '@/hooks/useTests';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { FaUser, FaEdit, FaCheckCircle, FaCog, FaHistory, FaSignOutAlt, FaFileAlt, FaChartLine } from 'react-icons/fa';
 
+// Компонент скелетона для карточек загрузки
+const CardSkeleton = () => (
+  <div className="bg-white shadow-sm p-6 rounded-xl border border-neutral-200">
+    <div className="flex flex-col items-center text-center">
+      <div className="h-12 w-12 bg-neutral-200 rounded-full mb-3 animate-pulse"></div>
+      <div className="h-5 w-24 bg-neutral-200 mb-1 animate-pulse rounded"></div>
+      <div className="h-4 w-20 bg-neutral-200 animate-pulse rounded"></div>
+    </div>
+  </div>
+);
+
 // Пример данных пользователя
 const mockUser = {
   name: 'Антон Иванов',
@@ -22,12 +33,13 @@ const mockUser = {
 export default function ProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
-  const { getUserTests, loading: testsLoading } = useTests();
+  const { getUserTests, getUserResults, loading: testsLoading } = useTests();
   
   const [testStats, setTestStats] = useState({
     created: 0,
     taken: 0
   });
+  const [isStatsLoaded, setIsStatsLoaded] = useState(false);
 
   // Загружаем данные пользователя при монтировании компонента
   useEffect(() => {
@@ -36,20 +48,24 @@ export default function ProfilePage() {
       async function loadTestStats() {
         try {
           const userTests = await getUserTests(user.id);
+          const userResults = await getUserResults(user.id);
+          
           if (userTests) {
             setTestStats({
               created: userTests.length,
-              taken: 0 // Здесь можно добавить логику для подсчета пройденных тестов
+              taken: userResults?.length || 0
             });
           }
+          setIsStatsLoaded(true);
         } catch (err) {
           console.error('Ошибка при загрузке статистики тестов:', err);
+          setIsStatsLoaded(true);
         }
       }
       
       loadTestStats();
     }
-  }, [user, getUserTests]);
+  }, [user, getUserTests, getUserResults]);
 
   const handleLogout = async () => {
     await signOut();
@@ -95,31 +111,39 @@ export default function ProfilePage() {
             </div>
           </Link>
           
-          <Link 
-            href="/profile/tests?tab=created"
-            className="bg-white shadow-sm hover:shadow transition-shadow p-6 rounded-xl border border-neutral-200"
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="h-12 w-12 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mb-3">
-                <FaEdit className="w-5 h-5" />
+          {testsLoading && !isStatsLoaded ? (
+            <CardSkeleton />
+          ) : (
+            <Link 
+              href="/profile/tests?tab=created"
+              className="bg-white shadow-sm hover:shadow transition-shadow p-6 rounded-xl border border-neutral-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="h-12 w-12 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mb-3">
+                  <FaEdit className="w-5 h-5" />
+                </div>
+                <h3 className="font-medium mb-1">Мои тесты</h3>
+                <p className="text-neutral-500 text-sm">Создано: {testStats.created}</p>
               </div>
-              <h3 className="font-medium mb-1">Мои тесты</h3>
-              <p className="text-neutral-500 text-sm">Создано: {testsLoading ? '...' : testStats.created}</p>
-            </div>
-          </Link>
+            </Link>
+          )}
           
-          <Link 
-            href="/profile/tests?tab=taken"
-            className="bg-white shadow-sm hover:shadow transition-shadow p-6 rounded-xl border border-neutral-200"
-          >
-            <div className="flex flex-col items-center text-center">
-              <div className="h-12 w-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-3">
-                <FaCheckCircle className="w-5 h-5" />
+          {testsLoading && !isStatsLoaded ? (
+            <CardSkeleton />
+          ) : (
+            <Link 
+              href="/profile/tests?tab=taken"
+              className="bg-white shadow-sm hover:shadow transition-shadow p-6 rounded-xl border border-neutral-200"
+            >
+              <div className="flex flex-col items-center text-center">
+                <div className="h-12 w-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-3">
+                  <FaCheckCircle className="w-5 h-5" />
+                </div>
+                <h3 className="font-medium mb-1">Пройденные</h3>
+                <p className="text-neutral-500 text-sm">Пройдено: {testStats.taken}</p>
               </div>
-              <h3 className="font-medium mb-1">Пройденные</h3>
-              <p className="text-neutral-500 text-sm">Пройдено: {testsLoading ? '...' : testStats.taken}</p>
-            </div>
-          </Link>
+            </Link>
+          )}
           
           <Link 
             href="/profile/settings"

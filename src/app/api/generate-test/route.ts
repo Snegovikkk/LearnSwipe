@@ -3,7 +3,7 @@ import { generateTest } from '@/lib/deepseek';
 
 export async function POST(request: Request) {
   try {
-    const { text, title, numberOfQuestions } = await request.json();
+    const { text, title, selectedTopic, numberOfQuestions } = await request.json();
 
     // Проверка наличия обязательных параметров
     if (!text || !title) {
@@ -21,8 +21,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // Проверка валидности количества вопросов
+    const questionsCount = numberOfQuestions ? Math.min(Math.max(5, numberOfQuestions), 15) : 5;
+
     // Генерация теста с помощью DeepSeek
-    const questions = await generateTest(text, title, numberOfQuestions || 5);
+    // Модифицируем title, если есть selectedTopic
+    const finalTitle = selectedTopic ? `${title} (${selectedTopic})` : title;
+    
+    // Генерируем вопросы
+    const questions = await generateTest(text, finalTitle, questionsCount);
 
     // Возвращаем результат
     return NextResponse.json({ 

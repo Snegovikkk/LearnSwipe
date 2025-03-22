@@ -1,33 +1,72 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { FaArrowLeft, FaPlay, FaInfoCircle, FaShare, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
+import { useRouter } from 'next/navigation';
 import useTests from '@/hooks/useTests';
 import useAuth from '@/hooks/useAuth';
+import TestCard from '@/components/test/TestCard';
+import { FaArrowLeft, FaSpinner, FaClock, FaExclamationTriangle, FaUser, FaCalendarAlt, FaPlayCircle } from 'react-icons/fa';
+import { AnimatePresence, motion } from 'framer-motion';
 
-export default function TestDetailPage() {
+interface TestDetailPageProps {
+  params: {
+    id: string;
+  };
+}
+
+// Режимы просмотра
+enum ViewMode {
+  INFO = 'info',
+  PREVIEW = 'preview'
+}
+
+export default function TestDetailPage({ params }: TestDetailPageProps) {
   const router = useRouter();
-  const params = useParams();
-  const { getTestById } = useTests();
   const { user } = useAuth();
+  const { getTestById } = useTests();
   const [test, setTest] = useState<any>(null);
+  const [previewQuestions, setPreviewQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.INFO);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
   useEffect(() => {
     async function fetchTest() {
-      if (!params.id) return;
-      
       setLoading(true);
       try {
-        const testData = await getTestById(params.id as string);
+        const testData = await getTestById(params.id);
         if (!testData) {
           setError('Тест не найден');
-        } else {
-          setTest(testData);
-          setError(null);
+          setLoading(false);
+          return;
         }
+        
+        setTest(testData);
+        
+        // Парсим контент теста, если он есть
+        if (testData.content) {
+          try {
+            let questions = [];
+            const content = typeof testData.content === 'string' 
+              ? JSON.parse(testData.content) 
+              : testData.content;
+              
+            if (Array.isArray(content.questions)) {
+              questions = content.questions;
+            } else if (Array.isArray(content)) {
+              questions = content;
+            }
+            
+            // Берем только первые 3 вопроса для предпросмотра
+            setPreviewQuestions(questions.slice(0, 3));
+          } catch (err) {
+            console.error('Ошибка при парсинге контента теста:', err);
+            setPreviewQuestions([]);
+          }
+        }
+        
+        setError(null);
       } catch (err) {
         console.error('Ошибка при загрузке теста:', err);
         setError('Не удалось загрузить тест. Пожалуйста, попробуйте позже.');
@@ -38,58 +77,80 @@ export default function TestDetailPage() {
     
     fetchTest();
   }, [params.id, getTestById]);
-  
+
   const handleStartTest = () => {
     router.push(`/tests/${params.id}/start`);
   };
-  
-  const handleShareTest = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: `Тест: ${test.title}`,
-        text: `Проверь свои знания! Пройди тест "${test.title}" на Lume.`,
-        url: window.location.href,
-      }).catch((error) => {
-        console.log('Ошибка при попытке поделиться', error);
-      });
+
+  const handleNextQuestion = () => {
+    if (currentQuestionIndex < previewQuestions.length - 1) {
+      setCurrentQuestionIndex(prev => prev + 1);
     } else {
-      // Копирование ссылки в буфер обмена, если Web Share API не поддерживается
-      navigator.clipboard.writeText(window.location.href);
-      alert('Ссылка скопирована в буфер обмена');
+      // Если дошли до конца предпросмотра, возвращаемся к информации
+      setViewMode(ViewMode.INFO);
+      setCurrentQuestionIndex(0);
     }
   };
-  
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const getQuestionCount = () => {
+    try {
+      if (test?.content) {
+        const content = typeof test.content === 'string' 
+          ? JSON.parse(test.content) 
+          : test.content;
+          
+        if (Array.isArray(content.questions)) {
+          return content.questions.length;
+        } else if (Array.isArray(content)) {
+          return content.length;
+        }
+      }
+      return 0;
+    } catch (e) {
+      console.error('Ошибка при подсчете вопросов:', e);
+      return 0;
+    }
+  };
+
+  const getEstimatedTime = () => {
+    // Предполагаем, что на один вопрос уходит примерно 1 минута
+    const questionCount = getQuestionCount();
+    if (questionCount === 0) return '< 1 мин';
+    
+    const minutes = questionCount;
+    if (minutes < 60) {
+      return `${minutes} мин`;
+    } else {
+      const hours = Math.floor(minutes / 60);
+      const remainingMinutes = minutes % 60;
+      return `${hours} ч ${remainingMinutes > 0 ? remainingMinutes + ' мин' : ''}`;
+    }
+  };
+
   if (loading) {
     return (
-      <div className="py-8">
-        <div className="app-container">
-          <div className="flex items-center mb-6">
-            <button 
-              onClick={() => router.back()}
-              className="mr-3 text-neutral-600"
-              aria-label="Назад"
-            >
-              <FaArrowLeft />
-            </button>
-            <div className="h-8 w-48 bg-neutral-200 animate-pulse rounded-md"></div>
-          </div>
-          <div className="card">
-            <div className="h-6 w-3/4 bg-neutral-200 animate-pulse rounded-md mb-4"></div>
-            <div className="h-4 w-1/2 bg-neutral-200 animate-pulse rounded-md mb-6"></div>
-            <div className="space-y-3">
-              {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-5 bg-neutral-200 animate-pulse rounded-md"></div>
-              ))}
-            </div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <FaSpinner className="animate-spin text-4xl text-primary-600 mx-auto mb-4" />
+          <h2 className="text-xl font-medium text-neutral-700 mb-2">Загрузка теста...</h2>
+          <p className="text-neutral-500">Пожалуйста, подождите</p>
         </div>
       </div>
     );
   }
-  
+
   if (error) {
     return (
-      <div className="py-8">
+      <div className="min-h-screen py-8 bg-white">
         <div className="app-container">
           <div className="flex items-center mb-6">
             <button 
@@ -101,59 +162,106 @@ export default function TestDetailPage() {
             </button>
             <h1 className="text-2xl font-bold">Ошибка</h1>
           </div>
-          <div className="card text-center">
-            <FaExclamationTriangle className="text-3xl text-amber-500 mx-auto mb-4" />
-            <p className="text-red-500 mb-4">Не удалось загрузить тест</p>
-            <p className="text-neutral-600 text-sm mb-6">{error}</p>
+          <div className="card text-center p-8">
+            <div className="text-red-500 text-5xl mb-4">
+              <FaExclamationTriangle className="mx-auto" />
+            </div>
+            <h2 className="text-xl font-bold text-red-600 mb-4">Не удалось загрузить тест</h2>
+            <p className="text-neutral-600 mb-6">{error}</p>
             <button 
               onClick={() => router.back()}
               className="btn"
             >
-              Вернуться назад
+              Вернуться к тестам
             </button>
           </div>
         </div>
       </div>
     );
   }
-  
+
   if (!test) {
-    return null;
+    return (
+      <div className="min-h-screen py-8 bg-white">
+        <div className="app-container">
+          <div className="flex items-center mb-6">
+            <button 
+              onClick={() => router.back()}
+              className="mr-3 text-neutral-600"
+              aria-label="Назад"
+            >
+              <FaArrowLeft />
+            </button>
+            <h1 className="text-2xl font-bold">Тест не найден</h1>
+          </div>
+          <div className="card text-center p-8">
+            <p className="text-neutral-600 mb-6">Запрошенный тест не существует или был удален.</p>
+            <button 
+              onClick={() => router.back()}
+              className="btn"
+            >
+              Вернуться к тестам
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
-  
-  // Извлекаем вопросы из content, если они есть
-  let questions = [];
-  try {
-    if (test.content && typeof test.content === 'string') {
-      // Пытаемся распарсить JSON, если в content хранятся вопросы
-      const parsed = JSON.parse(test.content);
-      if (Array.isArray(parsed)) {
-        questions = parsed;
-      } else if (parsed.questions && Array.isArray(parsed.questions)) {
-        questions = parsed.questions;
-      }
-    } else if (test.content && typeof test.content === 'object') {
-      // Если content уже является объектом
-      questions = Array.isArray(test.content) 
-        ? test.content 
-        : (test.content.questions && Array.isArray(test.content.questions)) 
-          ? test.content.questions 
-          : [];
-    }
-    console.log('Загружено вопросов:', questions.length);
-  } catch (e) {
-    console.error('Ошибка при парсинге вопросов', e);
+
+  if (viewMode === ViewMode.PREVIEW && previewQuestions.length > 0) {
+    return (
+      <div className="min-h-screen py-6 bg-white">
+        <div className="app-container">
+          <div className="flex items-center mb-6">
+            <button 
+              onClick={() => {
+                setViewMode(ViewMode.INFO);
+                setCurrentQuestionIndex(0);
+              }}
+              className="mr-3 text-neutral-600"
+              aria-label="Назад"
+            >
+              <FaArrowLeft />
+            </button>
+            <h1 className="text-xl font-bold">Предпросмотр теста</h1>
+          </div>
+          
+          <div className="text-center mb-4">
+            <span className="text-sm font-medium text-neutral-500">
+              Вопрос {currentQuestionIndex + 1} из {previewQuestions.length}
+            </span>
+          </div>
+          
+          <AnimatePresence mode="wait">
+            <TestCard 
+              key={currentQuestionIndex}
+              id={previewQuestions[currentQuestionIndex].id || `preview-${currentQuestionIndex}`}
+              question={previewQuestions[currentQuestionIndex].question}
+              options={previewQuestions[currentQuestionIndex].options}
+              explanation={previewQuestions[currentQuestionIndex].explanation || 'Пояснение не предоставлено'}
+              onNextQuestion={handleNextQuestion}
+              isLastQuestion={currentQuestionIndex === previewQuestions.length - 1}
+            />
+          </AnimatePresence>
+          
+          <div className="mt-6 text-center">
+            <p className="text-neutral-500 text-sm mb-4">
+              Это предпросмотр теста. В полной версии вы увидите все {getQuestionCount()} вопросов.
+            </p>
+            <button 
+              onClick={handleStartTest}
+              className="btn"
+            >
+              Начать полный тест
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
-  
-  const questionsCount = questions.length || 10;
-  const formattedDate = new Date(test.created_at).toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-  
+
   return (
-    <div className="py-8 pb-24">
+    <div className="min-h-screen py-8 pb-24 bg-white">
       <div className="app-container">
         <div className="flex items-center mb-6">
           <button 
@@ -167,54 +275,64 @@ export default function TestDetailPage() {
         </div>
         
         <div className="card mb-6">
-          <h2 className="text-xl font-bold mb-2">{test.title}</h2>
-          <p className="text-neutral-600 mb-4">
-            {typeof test.content === 'string' && !questions.length 
-              ? test.content.substring(0, 200) + (test.content.length > 200 ? '...' : '')
-              : 'Нажмите кнопку "Начать тест", чтобы проверить свои знания!'}
+          <h2 className="text-xl font-bold mb-4">{test.title}</h2>
+          <p className="text-neutral-600 mb-6">
+            {test.description || 'Пройдите этот тест, чтобы проверить свои знания.'}
           </p>
           
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p className="text-sm text-neutral-500">Количество вопросов</p>
-              <p className="font-medium">{questionsCount}</p>
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="flex items-center text-neutral-600">
+              <FaUser className="mr-2 text-neutral-400" />
+              <span>Автор: {test.user_id ? 'Пользователь' : 'Система'}</span>
             </div>
-            <div>
-              <p className="text-sm text-neutral-500">Ограничение времени</p>
-              <p className="font-medium">15 минут</p>
+            <div className="flex items-center text-neutral-600">
+              <FaCalendarAlt className="mr-2 text-neutral-400" />
+              <span>Создан: {formatDate(test.created_at)}</span>
             </div>
-            <div>
-              <p className="text-sm text-neutral-500">Уровень сложности</p>
-              <p className="font-medium">Средний</p>
+            <div className="flex items-center text-neutral-600">
+              <span className="mr-2 text-neutral-400">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
+              <span>Вопросов: {getQuestionCount()}</span>
             </div>
-            <div>
-              <p className="text-sm text-neutral-500">Создан</p>
-              <p className="font-medium">{formattedDate}</p>
+            <div className="flex items-center text-neutral-600">
+              <FaClock className="mr-2 text-neutral-400" />
+              <span>Время: {getEstimatedTime()}</span>
             </div>
           </div>
           
-          <div className="flex items-center space-x-2 text-neutral-600 text-sm">
-            <FaInfoCircle className="text-neutral-400" />
-            <p>Создатель: {test.user_id ? 'Пользователь' : 'Система'}</p>
+          <div className="flex flex-col space-y-3">
+            <button 
+              onClick={handleStartTest}
+              className="btn bg-primary-600 text-white hover:bg-primary-700"
+            >
+              <FaPlayCircle className="mr-2" />
+              Начать тест
+            </button>
+            
+            {previewQuestions.length > 0 && (
+              <button 
+                onClick={() => setViewMode(ViewMode.PREVIEW)}
+                className="btn btn-outline"
+              >
+                Предпросмотр вопросов
+              </button>
+            )}
           </div>
         </div>
         
-        <div className="flex space-x-3">
-          <button
-            onClick={handleStartTest}
-            className="btn flex-1"
-          >
-            <FaPlay className="mr-2" />
-            Начать тест
-          </button>
-          
-          <button
-            onClick={handleShareTest}
-            className="btn btn-outline"
-            aria-label="Поделиться тестом"
-          >
-            <FaShare />
-          </button>
+        <div className="card">
+          <h3 className="text-lg font-medium mb-4">О чем этот тест</h3>
+          <p className="text-neutral-600 whitespace-pre-line">
+            {test.long_description || 
+             `Этот тест содержит ${getQuestionCount()} вопросов и поможет вам проверить ваши знания. 
+             
+Прохождение займет примерно ${getEstimatedTime()}.
+
+После завершения вы сможете увидеть свои результаты и узнать правильные ответы.`}
+          </p>
         </div>
       </div>
     </div>

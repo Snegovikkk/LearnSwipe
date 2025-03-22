@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import useTests from '@/hooks/useTests';
 import useAuth from '@/hooks/useAuth';
-import { FaFilter, FaSpinner, FaExclamationTriangle } from 'react-icons/fa';
+import { FaFilter, FaSpinner, FaExclamationTriangle, FaQuestionCircle } from 'react-icons/fa';
 
 export default function TestsPage() {
   const router = useRouter();
@@ -35,6 +35,31 @@ export default function TestsPage() {
     fetchTests();
   }, [getTests]);
   
+  // Функция для подсчета количества вопросов в тесте
+  const getQuestionCount = (test: any) => {
+    try {
+      if (test.content) {
+        // Предполагаем, что контент теста - это JSON-строка, содержащая массив вопросов
+        const content = typeof test.content === 'string' 
+          ? JSON.parse(test.content) 
+          : test.content;
+          
+        // Если есть свойство questions, используем его длину
+        if (Array.isArray(content.questions)) {
+          return content.questions.length;
+        }
+        // Если сам контент является массивом, используем его длину
+        else if (Array.isArray(content)) {
+          return content.length;
+        }
+      }
+      return 'Неизвестно'; // Если не удалось определить количество вопросов
+    } catch (e) {
+      console.error('Ошибка при подсчете вопросов:', e);
+      return 'Неизвестно';
+    }
+  };
+  
   const filteredTests = tests
     .filter(test => {
       // Фильтр по поисковому запросу
@@ -43,17 +68,29 @@ export default function TestsPage() {
       }
       
       // Фильтр по категории
-      if (filter !== 'all') {
-        // Здесь нужно будет реализовать фильтрацию по категориям,
-        // когда они будут добавлены к тестам
-        return true;
+      if (filter === 'popular') {
+        // Предполагаем, что популярные тесты имеют больше прохождений
+        // В будущем здесь будет логика для определения популярных тестов
+        // Сейчас просто случайно выбираем некоторые тесты как "популярные"
+        return test.id % 2 === 0; // Просто для демонстрации
+      } else if (filter === 'new') {
+        // Фильтруем тесты, созданные за последние 7 дней
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        return new Date(test.created_at) >= oneWeekAgo;
       }
       
-      return true;
+      return true; // Для фильтра 'all' возвращаем все тесты
     })
     .sort((a, b) => {
-      // Сортировка с более новыми тестами вначале
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      // Сортировка зависит от выбранного фильтра
+      if (filter === 'popular') {
+        // Сортировка по популярности (в будущем)
+        return 0; // Сейчас нет реальных данных о популярности
+      } else {
+        // По умолчанию и для 'new' сортируем с более новыми тестами вначале
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      }
     });
   
   return (
@@ -144,6 +181,10 @@ export default function TestsPage() {
             <p className="text-neutral-600 mb-4">
               {searchTerm 
                 ? 'Нет тестов, соответствующих вашему запросу' 
+                : filter === 'new' 
+                ? 'За последнюю неделю не было создано новых тестов'
+                : filter === 'popular'
+                ? 'Пока нет популярных тестов'
                 : 'Пока нет доступных тестов'}
             </p>
             {user && (
@@ -178,8 +219,9 @@ export default function TestsPage() {
                     </div>
                     
                     <div className="flex items-center">
+                      <FaQuestionCircle className="mr-1" />
                       <span>
-                        10 вопросов
+                        {getQuestionCount(test)} {typeof getQuestionCount(test) === 'number' ? 'вопросов' : ''}
                       </span>
                     </div>
                   </div>

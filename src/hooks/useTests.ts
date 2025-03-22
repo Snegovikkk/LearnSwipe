@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import supabase from '@/lib/supabase';
-import { Test, TestResult } from '@/lib/supabase';
+import { Test, TestResult, Question, Answer } from '@/lib/supabase';
 import { TestQuestion } from '@/lib/deepseek';
 
 // Интерфейс для создания нового теста
@@ -255,6 +255,72 @@ export default function useTests() {
     }
   };
 
+  // Получение конкретного результата теста по ID
+  const getTestResultById = async (resultId: string): Promise<TestResult | null> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from('test_results')
+        .select('*')
+        .eq('id', resultId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    } catch (error: any) {
+      console.error("Ошибка при получении результата теста:", error);
+      setError(error.message || "Не удалось получить результат теста");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Получение вопросов для конкретного теста
+  const getTestQuestions = async (testId: string): Promise<Question[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('test_id', testId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      console.error("Ошибка при получении вопросов теста:", error);
+      setError(error.message || "Не удалось получить вопросы теста");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Получение ответов для конкретного вопроса
+  const getQuestionAnswers = async (questionId: string): Promise<Answer[]> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const { data, error } = await supabase
+        .from('answers')
+        .select('*')
+        .eq('question_id', questionId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return data || [];
+    } catch (error: any) {
+      console.error("Ошибка при получении ответов на вопрос:", error);
+      setError(error.message || "Не удалось получить ответы на вопрос");
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     loading,
     error,
@@ -265,6 +331,9 @@ export default function useTests() {
     deleteTest,
     saveTestResult,
     getUserResults,
-    getUserResultsByTestId
+    getUserResultsByTestId,
+    getTestResultById,
+    getTestQuestions,
+    getQuestionAnswers
   };
 } 

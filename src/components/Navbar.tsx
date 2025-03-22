@@ -1,9 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import useAuth from '@/hooks/useAuth';
+import useNotifications from '@/hooks/useNotifications';
+import { FaHome, FaClipboardList, FaPlus, FaTachometerAlt, FaUser, FaSignOutAlt, FaUserCog, FaBars, FaTimes, FaBookOpen, FaBell } from 'react-icons/fa';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Функция для проверки прав администратора
 const isAdmin = (email: string | null | undefined) => {
@@ -14,9 +17,13 @@ const isAdmin = (email: string | null | undefined) => {
 export default function Navbar() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
+  const { getUnreadNotifications } = useNotifications();
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [activeMenuItem, setActiveMenuItem] = useState<string | null>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // Закрываем меню при навигации
   useEffect(() => {
@@ -28,10 +35,17 @@ export default function Navbar() {
   // Обработчик клика вне меню для его закрытия
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (isMenuOpen && event.target instanceof Element) {
-        const menu = document.getElementById('mobile-menu');
-        if (menu && !menu.contains(event.target)) {
+      // Закрытие мобильного меню при клике вне его
+      if (isMenuOpen && event.target instanceof Element && mobileMenuRef.current) {
+        if (!mobileMenuRef.current.contains(event.target)) {
           setIsMenuOpen(false);
+        }
+      }
+      
+      // Закрытие меню пользователя при клике вне его
+      if (isUserMenuOpen && event.target instanceof Element && userMenuRef.current) {
+        if (!userMenuRef.current.contains(event.target)) {
+          setIsUserMenuOpen(false);
         }
       }
     };
@@ -40,7 +54,7 @@ export default function Navbar() {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMenuOpen]);
+  }, [isMenuOpen, isUserMenuOpen]);
 
   // Обработчик нажатия на пункт меню с анимацией
   const handleMenuItemClick = (itemName: string) => {
@@ -52,40 +66,76 @@ export default function Navbar() {
   // Проверяем, является ли текущий пользователь администратором
   const userIsAdmin = isAdmin(user?.email);
 
-  // Добавляем стили для анимаций
+  // Загружаем количество непрочитанных уведомлений
   useEffect(() => {
-    // Добавляем стили только на стороне клиента
-    if (typeof document !== 'undefined') {
-      const styleElement = document.createElement('style');
-      styleElement.innerHTML = `
-        @keyframes menuItemClick {
-          0% { transform: scale(1); }
-          50% { transform: scale(0.97); }
-          100% { transform: scale(1); }
-        }
-        .menu-item-active {
-          animation: menuItemClick 0.3s ease;
-        }
-        @keyframes slideInRight {
-          from { transform: translateX(100%); }
-          to { transform: translateX(0); }
-        }
-        .slide-in-right {
-          animation: slideInRight 0.3s ease-out forwards;
-        }
-        .menu-item-link {
-          transition: all 0.2s ease;
-        }
-        .menu-item-link:active {
-          transform: translateX(3px);
-        }
-      `;
-      document.head.appendChild(styleElement);
+    if (!user) return;
+    
+    const loadUnreadNotifications = async () => {
+      try {
+        const { unreadCount } = await getUnreadNotifications(user.id);
+        setUnreadNotifications(unreadCount);
+      } catch (error) {
+        console.error('Ошибка загрузки уведомлений:', error);
+      }
+    };
+    
+    loadUnreadNotifications();
+    
+    // Устанавливаем интервал для периодической проверки уведомлений
+    const intervalId = setInterval(loadUnreadNotifications, 30000); // 30 секунд
+    
+    return () => clearInterval(intervalId);
+  }, [user, getUnreadNotifications]);
+
+  // Анимация для мобильного меню
+  const menuVariants = {
+    closed: { x: '100%' },
+    open: { x: 0 }
+  };
+  
+  // Анимация для меню пользователя
+  const userMenuVariants = {
+    hidden: { opacity: 0, scale: 0.95, y: -10 },
+    visible: { opacity: 1, scale: 1, y: 0 }
+  };
+
+  // Анимация для пунктов меню
+  const menuItemVariants = {
+    hidden: { opacity: 0, x: 20 },
+    visible: (i: number) => ({
+      opacity: 1,
+      x: 0,
+      transition: {
+        delay: i * 0.1
+      }
+    })
+  };
+
+  // Получаем инициалы пользователя
+  const getUserInitials = () => {
+    if (user?.name) {
+      const nameParts = user.name.split(' ');
+      if (nameParts.length > 1) {
+        return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
+      }
+      return user.name[0].toUpperCase();
     }
-  }, []);
+    return user?.email?.[0].toUpperCase() || 'U';
+  };
+
+  // Основные пункты навигации для мобильного меню
+  const mobileMenuItems = [
+    { name: 'Главная', href: '/', icon: FaHome },
+    { name: 'Тесты', href: '/tests', icon: FaBookOpen },
+    { name: 'Создать тест', href: '/tests/create', icon: FaPlus },
+    { name: 'Профиль', href: '/profile', icon: FaUser },
+    { name: 'Мои результаты', href: '/profile/results', icon: FaTachometerAlt },
+    { name: 'Уведомления', href: '/profile/notifications', icon: FaBell, badge: unreadNotifications },
+    ...(userIsAdmin ? [{ name: 'Админ панель', href: '/admin', icon: FaUserCog }] : []),
+  ];
 
   return (
-    <nav className="bg-white shadow-sm">
+    <nav className="bg-white shadow-sm sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
@@ -103,6 +153,7 @@ export default function Navbar() {
                   : 'border-transparent text-neutral-500 hover:border-neutral-300 hover:text-neutral-700'
                 }`}
               >
+                <FaHome className="mr-1" />
                 Главная
               </Link>
               <Link 
@@ -113,16 +164,18 @@ export default function Navbar() {
                   : 'border-transparent text-neutral-500 hover:border-neutral-300 hover:text-neutral-700'
                 }`}
               >
+                <FaClipboardList className="mr-1" />
                 Тесты
               </Link>
               <Link 
-                href="/create"
+                href="/tests/create"
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                  pathname === '/create'
+                  pathname === '/tests/create'
                   ? 'border-primary-500 text-neutral-900' 
                   : 'border-transparent text-neutral-500 hover:border-neutral-300 hover:text-neutral-700'
                 }`}
               >
+                <FaPlus className="mr-1" />
                 Создать тест
               </Link>
             </div>
@@ -130,69 +183,102 @@ export default function Navbar() {
           
           <div className="hidden sm:ml-6 sm:flex sm:items-center">
             {user ? (
-              <div className="ml-3 relative">
+              <div className="ml-3 relative" ref={userMenuRef}>
                 <div>
                   <button
                     onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                     className="max-w-xs bg-white flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    aria-expanded={isUserMenuOpen}
+                    aria-haspopup="true"
                   >
                     <span className="sr-only">Открыть меню пользователя</span>
-                    <div className="h-8 w-8 rounded-full bg-primary-100 flex items-center justify-center text-primary-700">
-                      {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-medium shadow-md">
+                      {getUserInitials()}
                     </div>
                   </button>
                 </div>
                 
-                {isUserMenuOpen && (
-                  <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5 z-10">
-                    <div className="px-4 py-2 text-sm text-neutral-700 border-b border-neutral-100">
-                      <p className="font-medium">{user.name || 'Пользователь'}</p>
-                      <p className="text-xs truncate">{user.email}</p>
-                    </div>
-                    <Link
-                      href="/profile"
-                      className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
+                <AnimatePresence>
+                  {isUserMenuOpen && (
+                    <motion.div 
+                      className="origin-top-right absolute right-0 mt-2 w-56 rounded-lg shadow-lg py-1 bg-white ring-1 ring-black/5 z-10 overflow-hidden"
+                      initial="hidden"
+                      animate="visible"
+                      exit="hidden"
+                      variants={userMenuVariants}
+                      transition={{ duration: 0.2 }}
                     >
-                      Мой профиль
-                    </Link>
-                    <Link
-                      href="/dashboard"
-                      className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                    >
-                      Аналитика
-                    </Link>
-                    <Link
-                      href="/profile/tests"
-                      className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                    >
-                      Мои тесты
-                    </Link>
-                    {userIsAdmin && (
-                      <Link
-                        href="/admin"
-                        className="block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                      >
-                        Панель администратора
-                      </Link>
-                    )}
-                    <button
-                      onClick={() => signOut()}
-                      className="block w-full text-left px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-100"
-                    >
-                      Выйти
-                    </button>
-                  </div>
-                )}
+                      <div className="px-4 py-3 text-sm text-neutral-700 border-b border-neutral-100 bg-neutral-50">
+                        <p className="font-medium">{user.name || 'Пользователь'}</p>
+                        <p className="text-xs truncate mt-1 text-neutral-500">{user.email}</p>
+                      </div>
+                      <div className="py-1">
+                        <Link 
+                          href="/profile" 
+                          className={`block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center ${
+                            pathname === '/profile' ? 'bg-neutral-50 font-medium' : ''
+                          }`}
+                        >
+                          <FaUser className="mr-2 text-neutral-500" />
+                          Профиль
+                        </Link>
+                        <Link 
+                          href="/profile/results" 
+                          className={`block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center ${
+                            pathname === '/profile/results' ? 'bg-neutral-50 font-medium' : ''
+                          }`}
+                        >
+                          <FaTachometerAlt className="mr-2 text-neutral-500" />
+                          Мои результаты
+                        </Link>
+                        <Link 
+                          href="/profile/notifications" 
+                          className={`block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center ${
+                            pathname === '/profile/notifications' ? 'bg-neutral-50 font-medium' : ''
+                          }`}
+                        >
+                          <FaBell className="mr-2 text-neutral-500" />
+                          Уведомления
+                          {unreadNotifications > 0 && (
+                            <span className="ml-1.5 inline-flex items-center justify-center h-5 w-5 text-xs font-bold text-white bg-red-500 rounded-full">
+                              {unreadNotifications}
+                            </span>
+                          )}
+                        </Link>
+                        {userIsAdmin && (
+                          <Link 
+                            href="/admin" 
+                            className={`block px-4 py-2 text-sm text-neutral-700 hover:bg-neutral-50 flex items-center ${
+                              pathname === '/admin' ? 'bg-neutral-50 font-medium' : ''
+                            }`}
+                          >
+                            <FaUserCog className="mr-2 text-neutral-500" />
+                            Админ панель
+                          </Link>
+                        )}
+                      </div>
+                      <div className="py-1 border-t border-neutral-100">
+                        <button 
+                          onClick={() => signOut()}
+                          className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-neutral-50 flex items-center"
+                        >
+                          <FaSignOutAlt className="mr-2" />
+                          Выйти
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
               <div className="flex items-center space-x-4">
-                <Link
+                <Link 
                   href="/auth/login"
                   className="text-primary-600 hover:text-primary-900 px-3 py-2 rounded-md text-sm font-medium"
                 >
                   Войти
                 </Link>
-                <Link
+                <Link 
                   href="/auth/signup"
                   className="bg-primary-600 text-white hover:bg-primary-700 px-3 py-2 rounded-md text-sm font-medium"
                 >
@@ -203,240 +289,148 @@ export default function Navbar() {
           </div>
           
           <div className="-mr-2 flex items-center sm:hidden">
-            <button
+            <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="inline-flex items-center justify-center p-2 rounded-md text-neutral-400 hover:text-neutral-500 hover:bg-neutral-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500"
+              aria-expanded={isMenuOpen}
             >
               <span className="sr-only">Открыть главное меню</span>
-              <svg
-                className={`${isMenuOpen ? 'hidden' : 'block'} h-6 w-6`}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16M4 18h16"
-                />
-              </svg>
-              <svg
-                className={`${isMenuOpen ? 'block' : 'hidden'} h-6 w-6`}
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              {isMenuOpen ? (
+                <FaTimes className="block h-6 w-6" />
+              ) : (
+                <FaBars className="block h-6 w-6" />
+              )}
             </button>
           </div>
         </div>
       </div>
 
       {/* Мобильное меню */}
-      <div 
-        id="mobile-menu" 
-        className={`${isMenuOpen ? 'block fixed inset-0 z-50 bg-black bg-opacity-25' : 'hidden'} sm:hidden`} 
-        onClick={(e) => {
-          // Закрывать меню только при клике на затемненный фон
-          if ((e.target as HTMLElement).id === 'mobile-menu') {
-            setIsMenuOpen(false);
-          }
-        }}
-      >
-        <div className={`fixed inset-y-0 right-0 max-w-xs w-full bg-white shadow-xl overflow-y-auto ${isMenuOpen ? 'slide-in-right' : ''}`} 
-          style={{ maxWidth: '80%' }}>
-          
-          <div className="p-4 flex items-center justify-between border-b border-neutral-100">
-            <div className="text-xl font-semibold text-neutral-900">Lume</div>
-            <button 
-              onClick={() => setIsMenuOpen(false)} 
-              className="p-2 rounded-full text-neutral-600 hover:bg-neutral-100 transition-colors duration-200"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="pt-2 pb-3 space-y-1 px-2">
-            <Link
-              href="/"
-              className={`flex items-center px-3 py-3 rounded-lg text-base font-medium menu-item-link ${
-                activeMenuItem === 'home' ? 'menu-item-active' : ''
-              } ${
-                pathname === '/'
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800'
-              }`}
-              onClick={() => handleMenuItemClick('home')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-              </svg>
-              Главная
-            </Link>
-            <Link
-              href="/tests"
-              className={`flex items-center px-3 py-3 rounded-lg text-base font-medium menu-item-link ${
-                activeMenuItem === 'tests' ? 'menu-item-active' : ''
-              } ${
-                pathname === '/tests' || pathname.startsWith('/tests/')
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800'
-              }`}
-              onClick={() => handleMenuItemClick('tests')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
-              </svg>
-              Тесты
-            </Link>
-            <Link
-              href="/create"
-              className={`flex items-center px-3 py-3 rounded-lg text-base font-medium menu-item-link ${
-                activeMenuItem === 'create' ? 'menu-item-active' : ''
-              } ${
-                pathname === '/create'
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800'
-              }`}
-              onClick={() => handleMenuItemClick('create')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-              Создать тест
-            </Link>
-          </div>
-          
-          {user ? (
-            <div className="pt-4 pb-3 border-t border-neutral-200">
-              <div className="flex items-center px-4 py-3">
-                <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700">
-                    {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                </div>
-                <div className="ml-3">
-                  <div className="text-base font-medium text-neutral-800">
-                    {user.name || 'Пользователь'}
-                  </div>
-                  <div className="text-sm font-medium text-neutral-500 truncate max-w-[200px]">
-                    {user.email}
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3 space-y-1 px-2">
-                <Link
-                  href="/profile"
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800 menu-item-link ${
-                    activeMenuItem === 'profile' ? 'menu-item-active' : ''
-                  }`}
-                  onClick={() => handleMenuItemClick('profile')}
+      <AnimatePresence>
+        {isMenuOpen && (
+          <motion.div 
+            id="mobile-menu" 
+            ref={mobileMenuRef}
+            className="fixed inset-y-0 right-0 max-w-xs w-full bg-white shadow-xl overflow-y-auto z-50"
+            initial="closed"
+            animate="open"
+            exit="closed"
+            variants={menuVariants}
+            transition={{ type: "tween", duration: 0.3 }}
+            style={{ maxWidth: '80%' }}
+          >
+            <div className="p-4 flex items-center justify-between border-b border-neutral-100">
+              <div className="text-xl font-semibold text-neutral-900">Lume</div>
+              <button 
+                onClick={() => setIsMenuOpen(false)}
+                className="p-2 rounded-full text-neutral-600 hover:bg-neutral-100 transition-colors duration-200"
+              >
+                <FaTimes className="h-6 w-6" />
+              </button>
+            </div>
+            
+            <div className="pt-2 pb-3 space-y-1 px-2">
+              {mobileMenuItems.map((item, index) => (
+                <motion.div
+                  key={item.name}
+                  custom={index}
+                  initial="hidden"
+                  animate="visible"
+                  variants={menuItemVariants}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
-                  Мой профиль
-                </Link>
-                <Link
-                  href="/dashboard"
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800 menu-item-link ${
-                    activeMenuItem === 'dashboard' ? 'menu-item-active' : ''
-                  }`}
-                  onClick={() => handleMenuItemClick('dashboard')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
-                    <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
-                  </svg>
-                  Аналитика
-                </Link>
-                <Link
-                  href="/profile/tests"
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800 menu-item-link ${
-                    activeMenuItem === 'mytests' ? 'menu-item-active' : ''
-                  }`}
-                  onClick={() => handleMenuItemClick('mytests')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
-                  </svg>
-                  Мои тесты
-                </Link>
-                {userIsAdmin && (
-                  <Link
-                    href="/admin"
-                    className={`flex items-center px-3 py-3 rounded-lg text-base font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800 menu-item-link ${
-                      activeMenuItem === 'admin' ? 'menu-item-active' : ''
+                  <Link 
+                    href={item.href}
+                    className={`flex items-center px-3 py-3 rounded-lg text-base font-medium menu-item-link ${
+                      pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800'
                     }`}
-                    onClick={() => handleMenuItemClick('admin')}
+                    onClick={() => handleMenuItemClick(item.name)}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                    </svg>
-                    Панель администратора
+                    <item.icon className="h-5 w-5 mr-3" />
+                    {item.name}
+                    {item.badge && (
+                      <span className="bg-primary-500 text-white text-xs rounded-full px-2 py-0.5 ml-2">{item.badge}</span>
+                    )}
                   </Link>
-                )}
-                <button
-                  onClick={() => {
-                    handleMenuItemClick('signout');
-                    setTimeout(() => signOut(), 300);
-                  }}
-                  className={`flex items-center w-full px-3 py-3 rounded-lg text-base font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800 menu-item-link ${
-                    activeMenuItem === 'signout' ? 'menu-item-active' : ''
-                  }`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V7.414l-5-5H3zm6 5a1 1 0 00-1 1v3.586l-1.293-1.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L10 12.586V9a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
-                  Выйти
-                </button>
-              </div>
+                </motion.div>
+              ))}
             </div>
-          ) : (
+            
             <div className="pt-4 pb-3 border-t border-neutral-200 px-2">
-              <div className="space-y-1">
-                <Link
-                  href="/auth/login"
-                  className={`flex items-center px-3 py-3 rounded-lg text-base font-medium text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800 menu-item-link ${
-                    activeMenuItem === 'login' ? 'menu-item-active' : ''
-                  }`}
-                  onClick={() => handleMenuItemClick('login')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 01-1 1h12a1 1 0 001-1V9.5a1 1 0 10-2 0V15H4V5h8.5a1 1 0 100-2H4a1 1 0 00-1 1zm13.5 9.5a1 1 0 100-2H13v-2.5a1 1 0 10-2 0V10h-2.5a1 1 0 000 2H11v2.5a1 1 0 102 0V12h2.5z" clipRule="evenodd" />
-                  </svg>
-                  Войти
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className={`flex items-center bg-primary-50 px-3 py-3 rounded-lg text-base font-medium text-primary-700 hover:bg-primary-100 menu-item-link ${
-                    activeMenuItem === 'signup' ? 'menu-item-active' : ''
-                  }`}
-                  onClick={() => handleMenuItemClick('signup')}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
-                  </svg>
-                  Регистрация
-                </Link>
-              </div>
+              {user ? (
+                <div className="space-y-1">
+                  <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    custom={3}
+                    variants={menuItemVariants}
+                  >
+                    <div className="px-3 py-3 flex items-center space-x-3 mb-2">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-medium">
+                        {getUserInitials()}
+                      </div>
+                      <div>
+                        <div className="text-base font-medium">{user.name || 'Пользователь'}</div>
+                        <div className="text-xs text-neutral-500 truncate max-w-[180px]">{user.email}</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    custom={7}
+                    initial="hidden"
+                    animate="visible"
+                    variants={menuItemVariants}
+                  >
+                    <button 
+                      onClick={() => signOut()}
+                      className="flex items-center bg-red-50 px-3 py-3 rounded-lg text-base font-medium text-red-700 hover:bg-red-100 menu-item-link w-full"
+                    >
+                      <FaSignOutAlt className="h-5 w-5 mr-3" />
+                      Выйти
+                    </button>
+                  </motion.div>
+                </div>
+              ) : (
+                <div className="space-y-2 px-3">
+                  <motion.div
+                    custom={3}
+                    initial="hidden"
+                    animate="visible"
+                    variants={menuItemVariants}
+                  >
+                    <Link 
+                      href="/auth/login"
+                      className="flex items-center px-3 py-3 rounded-lg text-base font-medium menu-item-link  text-neutral-600 hover:bg-neutral-50 hover:text-neutral-800"
+                      onClick={() => handleMenuItemClick('login')}
+                    >
+                      <FaUser className="h-5 w-5 mr-3" />
+                      Войти
+                    </Link>
+                  </motion.div>
+                  
+                  <motion.div
+                    custom={4}
+                    initial="hidden"
+                    animate="visible"
+                    variants={menuItemVariants}
+                  >
+                    <Link 
+                      href="/auth/signup"
+                      className="flex items-center bg-primary-50 px-3 py-3 rounded-lg text-base font-medium text-primary-700 hover:bg-primary-100 menu-item-link "
+                      onClick={() => handleMenuItemClick('signup')}
+                    >
+                      <FaPlus className="h-5 w-5 mr-3" />
+                      Регистрация
+                    </Link>
+                  </motion.div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 } 

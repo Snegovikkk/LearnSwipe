@@ -26,6 +26,7 @@ export default function CreateTestPage() {
   const [step, setStep] = useState<'input' | 'review' | 'success'>('input');
   const [useFile, setUseFile] = useState(false);
   const [quickCreating, setQuickCreating] = useState(false);
+  const [questionCount, setQuestionCount] = useState(10);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -112,7 +113,8 @@ export default function CreateTestPage() {
     try {
       // Получаем результат теста с вопросами
       // Если есть выбранная тема, передаем её для более точной генерации
-      const testResult = await generateTest(content, title, selectedTopic);
+      // Передаем также количество вопросов
+      const testResult = await generateTest(content, title, selectedTopic, questionCount);
       
       // Проверка наличия данных
       if (!testResult) {
@@ -214,8 +216,8 @@ export default function CreateTestPage() {
       // Генерируем название теста на основе выбранной темы
       const testTitle = `Тест по теме: ${selectedTopic}`;
       
-      // Получаем результат теста с вопросами
-      const testResult = await generateTest(content, testTitle, selectedTopic);
+      // Получаем результат теста с вопросами, передаем количество вопросов
+      const testResult = await generateTest(content, testTitle, selectedTopic, questionCount);
       
       if (!testResult) {
         throw new Error('Не удалось получить результат генерации теста');
@@ -296,6 +298,26 @@ export default function CreateTestPage() {
                 className="w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                 placeholder="Введите название теста"
               />
+            </div>
+            
+            <div className="mb-4">
+              <label htmlFor="questionCount" className="block text-sm font-medium text-neutral-700 mb-1">
+                Количество вопросов: {questionCount}
+              </label>
+              <div className="flex items-center">
+                <span className="mr-2 text-sm text-neutral-500">5</span>
+                <input
+                  type="range"
+                  id="questionCount"
+                  min="5"
+                  max="15"
+                  step="1"
+                  value={questionCount}
+                  onChange={(e) => setQuestionCount(parseInt(e.target.value))}
+                  className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
+                />
+                <span className="ml-2 text-sm text-neutral-500">15</span>
+              </div>
             </div>
             
             <div className="mb-4">
@@ -390,25 +412,26 @@ export default function CreateTestPage() {
             
             {suggestedTopics.length > 0 && (
               <div className="mb-6">
-                <div className="mb-4 bg-blue-50 border border-blue-200 p-3 rounded-md text-blue-700 text-sm">
-                  <p className="mb-2 font-medium">Новая функция: быстрое создание теста!</p>
+                <div className="mb-4 bg-blue-50 border border-blue-200 p-4 rounded-md text-blue-700 text-sm">
+                  <p className="mb-2 font-medium text-blue-800">🚀 Новая функция: быстрое создание теста!</p>
                   <p>1. Выберите интересующую вас тему из списка ниже, кликнув на неё</p>
-                  <p>2. Нажмите кнопку "Быстро создать и пройти тест", чтобы сразу перейти к тестированию</p>
+                  <p>2. Укажите количество вопросов с помощью слайдера выше</p>
+                  <p>3. Нажмите кнопку "Быстро создать и пройти тест", чтобы сразу перейти к тестированию</p>
                 </div>
                 
-                <h3 className="text-sm font-medium text-neutral-700 mb-2">
+                <h3 className="text-sm font-medium text-neutral-700 mb-3">
                   Рекомендуемые темы для теста:
                 </h3>
-                <div className="flex flex-wrap gap-2 mb-3">
+                <div className="flex flex-wrap gap-3 mb-3">
                   {suggestedTopics.map((topic, index) => (
                     <button
                       key={index}
                       type="button"
                       onClick={() => handleTopicSelect(topic)}
-                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                      className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm ${
                         selectedTopic === topic 
-                          ? 'bg-primary-500 text-white' 
-                          : 'bg-primary-100 text-primary-800 hover:bg-primary-200'
+                          ? 'bg-primary-600 text-white shadow-md transform scale-105' 
+                          : 'bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200'
                       } cursor-pointer`}
                     >
                       {topic}
@@ -417,21 +440,21 @@ export default function CreateTestPage() {
                 </div>
                 
                 {selectedTopic && (
-                  <div className="mt-3 pt-3 border-t border-neutral-200">
+                  <div className="mt-4 pt-4 border-t border-neutral-200">
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-neutral-800">
-                          Выбрана тема: <span className="text-primary-600">{selectedTopic}</span>
+                          Выбрана тема: <span className="text-primary-600 font-semibold">{selectedTopic}</span>
                         </p>
                         <p className="text-xs text-neutral-500 mt-1">
-                          Тест будет создан на основе введенного текста с фокусом на выбранную тему
+                          Тест с {questionCount} вопросами будет создан на основе введенного текста с фокусом на выбранную тему
                         </p>
                       </div>
                       <button
                         type="button"
                         onClick={handleQuickCreateAndStart}
                         disabled={loading || quickCreating || content.length < 100}
-                        className={`inline-flex items-center px-4 py-2 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors ${
+                        className={`inline-flex items-center px-4 py-2 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm ${
                           loading || quickCreating || content.length < 100 ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                       >
@@ -477,7 +500,7 @@ export default function CreateTestPage() {
         {step === 'review' && (
           <div className="bg-white shadow-md rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4">
-              Предпросмотр теста "{title}"
+              Предпросмотр теста "{title}" ({generatedQuestions.length} вопросов)
             </h2>
             
             <div className="mb-6">
