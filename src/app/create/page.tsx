@@ -1,667 +1,393 @@
 'use client';
 
-import { useState, useRef, ChangeEvent, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import { FaUpload, FaCheck, FaSpinner } from 'react-icons/fa';
 import useAuth from '@/hooks/useAuth';
 import useAI from '@/hooks/useAI';
-import useTests from '@/hooks/useTests';
-import { TestQuestion } from '@/lib/deepseek';
+import { FaSpinner, FaRobot, FaLightbulb, FaTimes, FaCheck, FaChevronRight, FaArrowLeft } from 'react-icons/fa';
+import TextareaAutosize from 'react-textarea-autosize';
+import ProtectedRoute from '@/components/ProtectedRoute';
 
-export default function CreateTestPage() {
-  const { user } = useAuth();
-  const { createTest } = useTests();
-  const { analyzeText, generateTest, isLoading: aiLoading, error: aiError } = useAI();
+export default function CreatePage() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { generateTest, loading: aiLoading } = useAI();
   
+  // Состояния для основной информации о тесте
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [file, setFile] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [suggestedTopics, setSuggestedTopics] = useState<string[]>([]);
-  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
-  const [generatedQuestions, setGeneratedQuestions] = useState<TestQuestion[]>([]);
-  const [step, setStep] = useState<'input' | 'review' | 'success'>('input');
-  const [useFile, setUseFile] = useState(false);
-  const [quickCreating, setQuickCreating] = useState(false);
-  const [questionCount, setQuestionCount] = useState(10);
+  const [text, setText] = useState('');
+  const [questionsCount, setQuestionsCount] = useState(10);
+  const [complexity, setComplexity] = useState<'easy' | 'hard'>('easy');
   
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Состояния для отображения процесса и результата
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
+  const [generationComplete, setGenerationComplete] = useState(false);
+  const [createdTestId, setCreatedTestId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Проверка валидности формы
+  const [formValid, setFormValid] = useState(false);
+  
+  // Рефы для анимации и прокрутки
+  const progressBarRef = useRef<HTMLDivElement>(null);
+  const topRef = useRef<HTMLDivElement>(null);
 
-  // Проверка, если пользователь не аутентифицирован, перенаправляем на страницу входа
+  // Проверка валидности формы
   useEffect(() => {
-    if (!user) {
-      return;
-    }
-  }, [user, router]);
+    setFormValid(!!title.trim() && text.trim().length > 100);
+  }, [title, text]);
 
-  // Обработка изменения файла
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
-      setUseFile(true);
-      
-      // Считываем содержимое файла
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const text = e.target?.result as string;
-        setContent(text);
-        
-        // Анализируем текст если он достаточно длинный
-        if (text.length > 100) {
-          handleAnalyzeText(text);
-        }
-      };
-      reader.readAsText(selectedFile);
-    }
-  };
-
-  // Анализ текста для получения предложенных тем
-  const handleAnalyzeText = async (text: string = content) => {
-    if (text.length < 100) {
-      setError('Текст слишком короткий для анализа. Минимум 100 символов.');
-      return;
-    }
-    
-    if (text.length > 10000) {
-      setError('Текст слишком длинный для анализа. Максимум 10000 символов.');
-      return;
-    }
-    
-    setLoading(true);
-    setError('');
-    setSelectedTopic(null); // Сбрасываем выбранную тему при новом анализе
-    
-    try {
-      // Получаем результат в виде объекта с массивом тем
-      const analysisResult = await analyzeText(text);
-      // Извлекаем topics из результата, или используем пустой массив в случае null
-      const topicsArray: string[] = analysisResult?.topics || [];
-      
-      // Проверяем, получили ли мы темы
-      if (!topicsArray.length) {
-        throw new Error('Не удалось выделить темы из текста. Возможно, текст не содержит явных тематических блоков или слишком специфичен.');
-      }
-      
-      // Устанавливаем темы в состояние
-      setSuggestedTopics(topicsArray);
-    } catch (err: any) {
-      console.error('Ошибка анализа текста:', err);
-      
-      // Устанавливаем более подробную ошибку в зависимости от типа проблемы
-      if (err.message.includes('API запрос не удался') || err.message.includes('fetch')) {
-        setError('Не удалось связаться с сервером ИИ для анализа текста. Пожалуйста, попробуйте позже.');
-      } else if (err.message.includes('выделить темы')) {
-        setError(err.message);
-      } else {
-        setError(`Не удалось проанализировать текст: ${err.message || 'неизвестная ошибка'}`);
-      }
-      
-      // Сбрасываем предложенные темы если произошла ошибка
-      setSuggestedTopics([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Обработчик выбора темы
-  const handleTopicSelect = (topic: string) => {
-    setSelectedTopic(topic === selectedTopic ? null : topic);
-    
-    // Если тема выбрана, можно использовать её в названии теста, если оно пустое
-    if (topic !== selectedTopic && !title) {
-      setTitle(`Тест по теме: ${topic}`);
-    }
-  };
-
-  // Генерация теста на основе текста
+  // Запуск генерации теста
   const handleGenerateTest = async () => {
-    if (!title) {
-      setError('Пожалуйста, введите название теста');
+    if (!user) {
+      setError('Вы должны войти в систему, чтобы создать тест');
       return;
     }
-    
-    if (content.length < 100) {
-      setError('Текст слишком короткий для генерации теста. Минимум 100 символов.');
-      return;
-    }
-    
-    if (content.length > 10000) {
-      setError('Текст слишком длинный для генерации теста. Максимум 10000 символов.');
-      return;
-    }
-    
-    setLoading(true);
-    setError('');
-    
-    try {
-      // Получаем результат теста с вопросами
-      // Если есть выбранная тема, передаем её для более точной генерации
-      // Передаем также количество вопросов
-      const testResult = await generateTest(content, title, selectedTopic, questionCount);
-      
-      // Проверка наличия данных
-      if (!testResult) {
-        throw new Error('Не удалось получить результат генерации теста от сервера ИИ. Пожалуйста, проверьте подключение к интернету и повторите попытку.');
-      }
-      
-      // Извлекаем вопросы из результата или используем пустой массив
-      const questionsArray = testResult.questions || [];
-      
-      // Валидация вопросов
-      if (!Array.isArray(questionsArray) || questionsArray.length === 0) {
-        throw new Error('Сгенерирован пустой список вопросов. Возможно, текст слишком короткий или не содержит достаточно информации для создания теста. Пожалуйста, попробуйте использовать другой текст или выбрать другую тему.');
-      }
-      
-      console.log('Сгенерировано вопросов:', questionsArray.length);
-      
-      // Убедимся, что каждый вопрос имеет ID и нужные поля
-      const validatedQuestions = questionsArray.map((q, index) => ({
-        id: q.id || `q${index + 1}`,
-        question: q.question,
-        options: Array.isArray(q.options) 
-          ? q.options.map((opt, optIndex) => ({
-              id: opt.id || String.fromCharCode(97 + optIndex), // a, b, c, d
-              text: opt.text,
-              isCorrect: !!opt.isCorrect
-            }))
-          : [],
-        explanation: q.explanation || ''
-      }));
-      
-      // Проверяем качество сгенерированных вопросов
-      const hasInvalidQuestions = validatedQuestions.some(
-        q => !q.question || q.question.length < 5 || q.options.length < 2 || !q.options.some(o => o.isCorrect)
-      );
-      
-      if (hasInvalidQuestions) {
-        throw new Error('Некоторые вопросы сгенерированы некорректно. Попробуйте изменить текст или тему и повторить попытку.');
-      }
-      
-      // Устанавливаем вопросы в состояние
-      setGeneratedQuestions(validatedQuestions);
-      setStep('review');
-    } catch (err: any) {
-      console.error('Ошибка генерации теста:', err);
-      // Устанавливаем более подробную ошибку в зависимости от типа проблемы
-      if (err.message.includes('API запрос не удался') || err.message.includes('fetch')) {
-        setError('Не удалось связаться с сервером ИИ для генерации теста. Пожалуйста, попробуйте позже.');
-      } else {
-        setError(err.message || 'Не удалось сгенерировать тест. Пожалуйста, попробуйте еще раз с другим текстом.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // Сохранение созданного теста
-  const handleSaveTest = async () => {
-    if (!user || !user.id) {
-      setError('Необходимо войти в систему для сохранения теста');
-      return;
-    }
-    
-    setLoading(true);
-    setError('');
-    
     try {
-      // Создаем тест в базе данных
-      const result = await createTest({
+      setIsGenerating(true);
+      setGenerationProgress(0);
+      setError(null);
+      
+      // Имитация прогресса для UX
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => {
+          if (prev >= 95) {
+            clearInterval(progressInterval);
+            return 95;
+          }
+          return prev + Math.random() * 5;
+        });
+      }, 1000);
+      
+      const testData = {
         userId: user.id,
         title,
-        questions: generatedQuestions,
-        description: content.substring(0, 200) + (content.length > 200 ? '...' : '')
-      });
+        topic: title, // Используем заголовок как тему
+        complexity,
+        questionsCount,
+        text
+      };
       
-      if (result) {
-        setStep('success');
-        // Перенаправляем на страницу с тестами через 2 секунды
-        setTimeout(() => {
-          router.push('/profile/tests');
-        }, 2000);
+      const result = await generateTest(testData);
+      
+      clearInterval(progressInterval);
+      
+      if (result && result.success && result.testId) {
+        setCreatedTestId(result.testId);
+        setGenerationProgress(100);
+        setGenerationComplete(true);
       } else {
-        throw new Error('Ошибка при сохранении теста');
+        throw new Error(result?.error || 'Не удалось создать тест');
       }
     } catch (err: any) {
-      console.error('Ошибка сохранения теста:', err);
-      setError(err.message || 'Не удалось сохранить тест');
-    } finally {
-      setLoading(false);
+      setError(err.message || 'Произошла ошибка при создании теста');
+      setGenerationProgress(0);
+      setIsGenerating(false);
     }
   };
 
-  // Быстрое создание теста и переход к его прохождению
-  const handleQuickCreateAndStart = async () => {
-    if (!selectedTopic) {
-      setError('Необходимо выбрать тему для быстрого создания теста');
-      return;
+  // Перейти к созданному тесту
+  const handleViewTest = () => {
+    if (createdTestId) {
+      router.push(`/tests/${createdTestId}/start`);
     }
-    
-    if (content.length < 100) {
-      setError('Текст слишком короткий для генерации теста. Минимум 100 символов.');
-      return;
-    }
-    
-    if (content.length > 10000) {
-      setError('Текст слишком длинный для генерации теста. Максимум 10000 символов.');
-      return;
-    }
-    
-    if (!user || !user.id) {
-      setError('Необходимо войти в систему для создания теста');
-      return;
-    }
-    
-    setQuickCreating(true);
-    setError('');
-    
-    try {
-      // Генерируем название теста на основе выбранной темы
-      const testTitle = `Тест по теме: ${selectedTopic}`;
-      
-      // Получаем результат теста с вопросами, передаем количество вопросов
-      const testResult = await generateTest(content, testTitle, selectedTopic, questionCount);
-      
-      if (!testResult) {
-        throw new Error('Не удалось получить результат генерации теста от сервера ИИ. Пожалуйста, проверьте подключение к интернету и повторите попытку.');
-      }
-      
-      // Извлекаем вопросы из результата или используем пустой массив
-      const questionsArray = testResult.questions || [];
-      
-      if (!Array.isArray(questionsArray) || questionsArray.length === 0) {
-        throw new Error('Сгенерирован пустой список вопросов. Возможно, текст слишком короткий или не содержит достаточно информации для создания теста. Пожалуйста, попробуйте использовать другой текст или выбрать другую тему.');
-      }
-      
-      console.log('Быстро сгенерировано вопросов:', questionsArray.length);
-      
-      // Валидация вопросов
-      const validatedQuestions = questionsArray.map((q, index) => ({
-        id: q.id || `q${index + 1}`,
-        question: q.question,
-        options: Array.isArray(q.options) 
-          ? q.options.map((opt, optIndex) => ({
-              id: opt.id || String.fromCharCode(97 + optIndex), // a, b, c, d
-              text: opt.text,
-              isCorrect: !!opt.isCorrect
-            }))
-          : [],
-        explanation: q.explanation || ''
-      }));
-      
-      // Проверяем качество сгенерированных вопросов
-      const hasInvalidQuestions = validatedQuestions.some(
-        q => !q.question || q.question.length < 5 || q.options.length < 2 || !q.options.some(o => o.isCorrect)
-      );
-      
-      if (hasInvalidQuestions) {
-        throw new Error('Некоторые вопросы сгенерированы некорректно. Попробуйте изменить текст или тему и повторить попытку.');
-      }
-      
-      // Создаем тест в базе данных
-      const savedTest = await createTest({
-        userId: user.id,
-        title: testTitle,
-        questions: validatedQuestions,
-        description: content.substring(0, 200) + (content.length > 200 ? '...' : '')
-      });
-      
-      if (!savedTest) {
-        throw new Error('Не удалось сохранить тест в базе данных. Пожалуйста, попробуйте позже.');
-      }
-      
-      // Перенаправляем на страницу прохождения теста
-      router.push(`/tests/${savedTest.id}/start`);
-    } catch (err: any) {
-      console.error('Ошибка быстрого создания теста:', err);
-      // Более детальная обработка ошибок
-      if (err.message.includes('API запрос не удался') || err.message.includes('fetch')) {
-        setError('Не удалось связаться с сервером ИИ для генерации теста. Пожалуйста, попробуйте позже.');
-      } else if (err.message.includes('базе данных')) {
-        setError(err.message);
-      } else {
-        setError(err.message || 'Не удалось создать и запустить тест. Пожалуйста, попробуйте позже.');
-      }
-      setQuickCreating(false);
-    }
+  };
+
+  // Прокрутка к началу страницы
+  const scrollToTop = () => {
+    topRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
     <ProtectedRoute>
-      <div className="container mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold mb-6">Создание теста</h1>
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
+      <div className="min-h-screen bg-neutral-50 py-12 px-4 sm:px-6 lg:px-8" ref={topRef}>
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center mb-6">
+            <button
+              onClick={() => router.back()}
+              className="mr-4 p-2 rounded-full text-neutral-600 hover:bg-neutral-100 transition-colors"
+              aria-label="Назад"
+            >
+              <FaArrowLeft />
+            </button>
+            <h1 className="text-3xl font-bold text-neutral-800">Создание теста</h1>
           </div>
-        )}
-        
-        {aiError && (
-          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 px-4 py-3 rounded mb-4">
-            Ошибка ИИ: {aiError}. Будут использованы локальные шаблоны.
-          </div>
-        )}
-        
-        {step === 'input' && (
-          <div className="bg-white shadow-md rounded-lg p-6">
-            <div className="mb-4">
-              <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-1">
-                Название теста*
-              </label>
-              <input
-                type="text"
-                id="title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                placeholder="Введите название теста"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label htmlFor="questionCount" className="block text-sm font-medium text-neutral-700 mb-1">
-                Количество вопросов: {questionCount}
-              </label>
-              <div className="flex items-center">
-                <span className="mr-2 text-sm text-neutral-500">5</span>
-                <input
-                  type="range"
-                  id="questionCount"
-                  min="5"
-                  max="15"
-                  step="1"
-                  value={questionCount}
-                  onChange={(e) => setQuestionCount(parseInt(e.target.value))}
-                  className="w-full h-2 bg-neutral-200 rounded-lg appearance-none cursor-pointer accent-primary-500"
-                />
-                <span className="ml-2 text-sm text-neutral-500">15</span>
-              </div>
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-neutral-700 mb-1">
-                Текст для генерации вопросов*
-              </label>
-              
-              <div className="flex mb-2">
-                <button
-                  type="button"
-                  onClick={() => setUseFile(false)}
-                  className={`px-4 py-2 mr-2 rounded-md ${
-                    !useFile 
-                      ? 'bg-primary-100 text-primary-800 border border-primary-300'
-                      : 'bg-neutral-100 text-neutral-800 border border-neutral-300'
-                  }`}
-                >
-                  Ввести текст
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setUseFile(true);
-                    if (fileInputRef.current) fileInputRef.current.click();
-                  }}
-                  className={`px-4 py-2 rounded-md ${
-                    useFile 
-                      ? 'bg-primary-100 text-primary-800 border border-primary-300'
-                      : 'bg-neutral-100 text-neutral-800 border border-neutral-300'
-                  }`}
-                >
-                  Загрузить файл
-                </button>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileChange}
-                  accept=".txt,.doc,.docx,.pdf,.md"
-                  className="hidden"
-                />
-              </div>
-              
-              {useFile ? (
-                <div className="border border-neutral-300 rounded-md p-4 bg-neutral-50">
-                  {file ? (
-                    <div className="flex items-center">
-                      <FaCheck className="text-green-500 mr-2" />
-                      <span>{file.name} ({Math.round(file.size / 1024)} KB)</span>
-                    </div>
-                  ) : (
-                    <div 
-                      className="flex flex-col items-center justify-center py-6 cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <FaUpload className="text-neutral-400 text-3xl mb-2" />
-                      <p className="text-neutral-500">Нажмите, чтобы выбрать файл</p>
-                      <p className="text-neutral-400 text-sm">Поддерживаемые форматы: .txt, .doc, .docx, .pdf, .md</p>
-                    </div>
-                  )}
+
+          {!isGenerating && !generationComplete ? (
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+              <div className="p-6 space-y-6">
+                {/* Информационный блок */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-blue-800 flex items-center mb-2">
+                    <FaLightbulb className="mr-2" />
+                    Как это работает
+                  </h3>
+                  <p className="text-sm text-blue-700">
+                    Добавьте текст и название, а наш ИИ автоматически создаст тест с вопросами на основе его содержания.
+                    Чем информативнее текст, тем качественнее будут вопросы.
+                  </p>
                 </div>
-              ) : (
-                <textarea
-                  value={content}
-                  onChange={(e) => {
-                    const newText = e.target.value;
-                    if (newText.length <= 10000) {
-                      setContent(newText);
-                      if (newText.length > 100) {
-                        setSuggestedTopics([]);
-                      }
-                    }
-                  }}
-                  rows={10}
-                  className="w-full px-3 py-2 border border-neutral-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="Введите или вставьте текст, на основе которого будут сгенерированы вопросы"
-                  maxLength={10000}
-                ></textarea>
-              )}
-              
-              <div className="flex justify-between mt-2">
-                <span className="text-sm text-neutral-500">
-                  {content.length} / 10000 символов {content.length < 100 && '(минимум 100)'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleAnalyzeText()}
-                  disabled={loading || content.length < 100 || content.length > 10000}
-                  className={`text-sm text-primary-600 hover:text-primary-500 ${
-                    loading || content.length < 100 || content.length > 10000 ? 'opacity-50 cursor-not-allowed' : ''
-                  }`}
-                >
-                  {loading ? 'Анализ текста...' : 'Проанализировать текст'}
-                </button>
-              </div>
-              
-              {/* Добавляем подсказку о том, почему кнопка может быть неактивна */}
-              {content.length < 100 && (
-                <p className="text-xs text-amber-600 mt-1">
-                  Введите не менее 100 символов, чтобы начать анализ текста
-                </p>
-              )}
-              {content.length > 10000 && (
-                <p className="text-xs text-amber-600 mt-1">
-                  Текст слишком длинный. Максимальная длина для анализа - 10000 символов
-                </p>
-              )}
-            </div>
-            
-            {suggestedTopics.length > 0 && (
-              <div className="mb-6">
-                <div className="mb-4 bg-blue-50 border border-blue-200 p-4 rounded-md text-blue-700 text-sm">
-                  <p className="mb-2 font-medium text-blue-800">🚀 Новая функция: быстрое создание теста!</p>
-                  <p>1. Выберите интересующую вас тему из списка ниже, кликнув на неё</p>
-                  <p>2. Укажите количество вопросов с помощью слайдера выше</p>
-                  <p>3. Нажмите кнопку "Быстро создать и пройти тест", чтобы сразу перейти к тестированию</p>
+
+                {/* Название теста */}
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-neutral-700 mb-1">
+                    Название теста *
+                  </label>
+                  <input
+                    type="text"
+                    id="title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="block w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition ease-in-out duration-150"
+                    placeholder="Например: Тест по истории России"
+                  />
                 </div>
-                
-                <h3 className="text-sm font-medium text-neutral-700 mb-3">
-                  Рекомендуемые темы для теста:
-                </h3>
-                <div className="flex flex-wrap gap-3 mb-3">
-                  {suggestedTopics.map((topic, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => handleTopicSelect(topic)}
-                      className={`inline-flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm ${
-                        selectedTopic === topic 
-                          ? 'bg-primary-600 text-white shadow-md transform scale-105' 
-                          : 'bg-primary-50 text-primary-700 hover:bg-primary-100 border border-primary-200'
-                      } cursor-pointer`}
-                    >
-                      {topic}
-                    </button>
-                  ))}
-                </div>
-                
-                {selectedTopic && (
-                  <div className="mt-4 pt-4 border-t border-neutral-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-neutral-800">
-                          Выбрана тема: <span className="text-primary-600 font-semibold">{selectedTopic}</span>
-                        </p>
-                        <p className="text-xs text-neutral-500 mt-1">
-                          Тест с {questionCount} вопросами будет создан на основе введенного текста с фокусом на выбранную тему
-                        </p>
-                      </div>
+
+                {/* Текст */}
+                <div>
+                  <label htmlFor="text" className="block text-sm font-medium text-neutral-700 mb-1">
+                    Текст для анализа *
+                  </label>
+                  <TextareaAutosize
+                    id="text"
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    minRows={8}
+                    className="block w-full px-4 py-3 bg-white border border-neutral-300 rounded-lg text-neutral-900 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition ease-in-out duration-150"
+                    placeholder="Вставьте текст, на основе которого будет создан тест (минимум 100 символов)"
+                  />
+                  <div className="mt-2 flex justify-between text-xs">
+                    <span className={`${text.length < 100 ? 'text-red-500' : 'text-neutral-500'}`}>
+                      {text.length} символов (минимум 100)
+                    </span>
+                    {text.length > 0 && (
                       <button
                         type="button"
-                        onClick={handleQuickCreateAndStart}
-                        disabled={loading || quickCreating || content.length < 100}
-                        className={`inline-flex items-center px-4 py-2 text-sm rounded-md bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm ${
-                          loading || quickCreating || content.length < 100 ? 'opacity-50 cursor-not-allowed' : ''
+                        onClick={() => setText('')}
+                        className="text-neutral-500 hover:text-neutral-700"
+                      >
+                        Очистить
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Дополнительные настройки */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Количество вопросов */}
+                  <div>
+                    <span className="block text-sm font-medium text-neutral-700 mb-2">
+                      Количество вопросов
+                    </span>
+                    <div className="flex items-center">
+                      <span className="mr-4 text-neutral-600 text-sm">5</span>
+                      <input
+                        type="range"
+                        min="5"
+                        max="15"
+                        step="1"
+                        value={questionsCount}
+                        onChange={(e) => setQuestionsCount(parseInt(e.target.value))}
+                        className="w-full h-2 bg-neutral-200 rounded-full accent-primary-600"
+                      />
+                      <span className="ml-4 text-neutral-600 text-sm">15</span>
+                    </div>
+                    <p className="mt-1 text-center text-sm font-medium text-primary-600">{questionsCount} вопросов</p>
+                  </div>
+
+                  {/* Сложность */}
+                  <div>
+                    <span className="block text-sm font-medium text-neutral-700 mb-2">
+                      Сложность
+                    </span>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setComplexity('easy')}
+                        className={`px-4 py-3 rounded-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary-500 transition border ${
+                          complexity === 'easy'
+                            ? 'bg-green-50 border-green-200 text-green-800'
+                            : 'bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50'
                         }`}
                       >
-                        {quickCreating ? (
-                          <>
-                            <FaSpinner className="animate-spin mr-2" />
-                            Создание теста...
-                          </>
-                        ) : (
-                          <>
-                            Быстро создать и пройти тест
-                          </>
-                        )}
+                        <span className="text-sm font-medium">Простой</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setComplexity('hard')}
+                        className={`px-4 py-3 rounded-lg flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary-500 transition border ${
+                          complexity === 'hard'
+                            ? 'bg-red-50 border-red-200 text-red-800'
+                            : 'bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50'
+                        }`}
+                      >
+                        <span className="text-sm font-medium">Сложный</span>
                       </button>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
-            )}
-            
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleGenerateTest}
-                disabled={loading || content.length < 100 || content.length > 10000 || !title}
-                className={`px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                  loading || content.length < 100 || content.length > 10000 || !title ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {loading ? (
-                  <span className="flex items-center">
+
+              <div className="px-6 py-4 bg-neutral-50 border-t border-neutral-200 flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-100 transition flex items-center"
+                >
+                  <FaTimes className="mr-2" size={14} />
+                  Отмена
+                </button>
+                <button
+                  type="button"
+                  onClick={handleGenerateTest}
+                  disabled={!formValid || aiLoading}
+                  className={`px-6 py-2 rounded-lg text-white flex items-center transition font-medium ${
+                    !formValid || aiLoading
+                      ? 'bg-neutral-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                >
+                  {aiLoading ? (
                     <FaSpinner className="animate-spin mr-2" />
-                    Генерация...
-                  </span>
-                ) : (
-                  'Создать тест'
-                )}
-              </button>
+                  ) : (
+                    <FaRobot className="mr-2" />
+                  )}
+                  Создать тест
+                </button>
+              </div>
             </div>
-          </div>
-        )}
-        
-        {step === 'review' && (
-          <div className="bg-white shadow-md rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">
-              Предпросмотр теста "{title}" ({generatedQuestions.length} вопросов)
-            </h2>
-            
-            <div className="mb-6">
-              <h3 className="text-lg font-medium mb-2">Вопросы ({generatedQuestions.length})</h3>
-              
-              <div className="space-y-4">
-                {generatedQuestions.map((question, qIndex) => (
-                  <div key={question.id || qIndex} className="border border-neutral-200 rounded-lg p-4">
-                    <h4 className="font-medium mb-2">
-                      {qIndex + 1}. {question.question}
-                    </h4>
-                    
-                    <div className="space-y-2 ml-6">
-                      {question.options.map((option, oIndex) => (
-                        <div 
-                          key={oIndex}
-                          className={`flex items-start ${
-                            option.isCorrect 
-                              ? 'text-green-700'
-                              : ''
-                          }`}
-                        >
-                          <span className="mr-2 font-medium">{String.fromCharCode(65 + oIndex)}.</span>
-                          <span>{option.text}</span>
-                          {option.isCorrect && (
-                            <FaCheck className="ml-2 text-green-500 mt-1" />
-                          )}
+          ) : (
+            <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+              <div className="p-6">
+                <div className="text-center">
+                  {!generationComplete ? (
+                    <>
+                      <div className="mb-5">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 text-primary-600 mb-4">
+                          <FaRobot className="w-8 h-8" />
                         </div>
-                      ))}
-                    </div>
-                    
-                    {question.explanation && (
-                      <div className="mt-2 text-sm text-neutral-600 border-t border-neutral-100 pt-2">
-                        <span className="font-medium">Объяснение: </span>
-                        {question.explanation}
+                        <h2 className="text-xl font-bold text-neutral-800 mb-2">
+                          Генерация теста...
+                        </h2>
+                        <p className="text-neutral-600 mb-6">
+                          ИИ анализирует текст и создаёт вопросы. Это может занять до минуты.
+                        </p>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      
+                      <div className="w-full bg-neutral-200 rounded-full h-2 mb-2 overflow-hidden" ref={progressBarRef}>
+                        <div
+                          className="bg-primary-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${Math.round(generationProgress)}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-sm text-neutral-600 mb-8">
+                        {Math.round(generationProgress)}% выполнено
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-5">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600 mb-4">
+                          <FaCheck className="w-8 h-8" />
+                        </div>
+                        <h2 className="text-xl font-bold text-neutral-800 mb-2">
+                          Тест успешно создан!
+                        </h2>
+                        <p className="text-neutral-600 mb-4">
+                          ИИ завершил создание вопросов для вашего теста.
+                        </p>
+                      </div>
+                      
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-5 mb-6 max-w-md mx-auto">
+                        <h3 className="font-medium text-green-800 mb-3">
+                          Информация о тесте:
+                        </h3>
+                        <dl className="text-sm space-y-3">
+                          <div className="flex justify-between">
+                            <dt className="text-neutral-600">Название:</dt>
+                            <dd className="font-medium text-neutral-800">{title}</dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-neutral-600">Количество вопросов:</dt>
+                            <dd className="font-medium text-neutral-800">{questionsCount}</dd>
+                          </div>
+                          <div className="flex justify-between">
+                            <dt className="text-neutral-600">Сложность:</dt>
+                            <dd className="font-medium">
+                              <span className={`px-2 py-1 rounded-full text-xs ${
+                                complexity === 'easy' 
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-red-100 text-red-800'
+                              }`}>
+                                {complexity === 'easy' 
+                                  ? 'Простой'
+                                  : 'Сложный'
+                                }
+                              </span>
+                            </dd>
+                          </div>
+                        </dl>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              
+              <div className="px-6 py-4 bg-neutral-50 border-t border-neutral-200 flex justify-between items-center">
+                {!generationComplete ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsGenerating(false);
+                      setGenerationProgress(0);
+                    }}
+                    className="px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-100 transition"
+                  >
+                    Отменить
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsGenerating(false);
+                        setGenerationComplete(false);
+                        setGenerationProgress(0);
+                        setTitle('');
+                        setText('');
+                        setComplexity('easy');
+                        setQuestionsCount(10);
+                        scrollToTop();
+                      }}
+                      className="px-4 py-2 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-100 transition"
+                    >
+                      Создать ещё
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleViewTest}
+                      className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition flex items-center"
+                    >
+                      Перейти к прохождению
+                      <FaChevronRight className="ml-2" size={12} />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
-            
-            <div className="flex justify-between">
-              <button
-                type="button"
-                onClick={() => setStep('input')}
-                className="px-4 py-2 border border-neutral-300 text-neutral-700 rounded-md hover:bg-neutral-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-neutral-500"
-              >
-                Назад
-              </button>
-              
-              <button
-                type="button"
-                onClick={handleSaveTest}
-                disabled={loading}
-                className={`px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 ${
-                  loading ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-              >
-                {loading ? (
-                  <span className="flex items-center">
-                    <FaSpinner className="animate-spin mr-2" />
-                    Сохранение...
-                  </span>
-                ) : (
-                  'Сохранить тест'
-                )}
-              </button>
+          )}
+          
+          {error && (
+            <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+              <p className="flex items-center">
+                <FaTimes className="mr-2 flex-shrink-0" />
+                <span>{error}</span>
+              </p>
             </div>
-          </div>
-        )}
-        
-        {step === 'success' && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
-            <h2 className="text-2xl font-semibold text-green-800 mb-4">
-              Тест успешно создан!
-            </h2>
-            <p className="text-green-700 mb-4">
-              Ваш тест "{title}" был успешно сохранен. Вы будете перенаправлены на страницу с вашими тестами.
-            </p>
-            <FaSpinner className="animate-spin text-green-500 mx-auto text-2xl" />
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </ProtectedRoute>
   );

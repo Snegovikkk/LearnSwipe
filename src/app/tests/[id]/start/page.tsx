@@ -218,7 +218,9 @@ export default function TestStartPage() {
           // Устанавливаем вопросы в состояние и меняем статус страницы
           console.log('Успешно загружено и валидировано вопросов:', validatedQuestions.length);
           setQuestions(validatedQuestions);
-          setPageState(TestPageState.READY);
+          // Сразу переходим к прохождению теста
+          setPageState(TestPageState.TEST);
+          setIsTutorialDismissed(true);
         } catch (e) {
           console.error('Общая ошибка при обработке вопросов:', e);
           setError('Не удалось обработать вопросы теста. Подробности: ' + (e as Error).message);

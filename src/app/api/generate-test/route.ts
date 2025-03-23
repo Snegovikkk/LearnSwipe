@@ -1,54 +1,53 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { generateTest } from '@/lib/deepseek';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { text, title, selectedTopic, numberOfQuestions } = await request.json();
+    // Получаем данные из запроса
+    const requestData = await request.json();
+    const { text, title, userId, complexity, selectedTopic, questionsCount } = requestData;
 
-    // Проверка наличия обязательных параметров
+    // Проверяем наличие обязательных параметров
     if (!text || !title) {
-      return NextResponse.json(
-        { error: 'Отсутствуют обязательные параметры (text или title)' },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Отсутствуют обязательные параметры (текст и заголовок)'
+      }, { status: 400 });
     }
 
-    // Ограничение длины текста (если текст слишком длинный, это может привести к ошибкам API)
+    // Ограничиваем длину текста
     if (text.length > 10000) {
-      return NextResponse.json(
-        { error: 'Текст слишком длинный (максимум 10000 символов)' },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Текст слишком длинный (максимум 10000 символов)'
+      }, { status: 400 });
     }
 
-    // Проверка валидности количества вопросов
-    const questionsCount = numberOfQuestions ? Math.min(Math.max(5, numberOfQuestions), 15) : 5;
+    // Определяем количество вопросов (между 5 и 15)
+    const numberOfQuestions = typeof questionsCount === 'number' && questionsCount >= 5 && questionsCount <= 15 
+      ? questionsCount 
+      : 5;
 
-    // Генерация теста с помощью DeepSeek
-    // Модифицируем title, если есть selectedTopic
-    const finalTitle = selectedTopic ? `${title} (${selectedTopic})` : title;
-    
+    console.log(`Генерация теста: "${title}", сложность: ${complexity || 'стандартная'}, вопросов: ${numberOfQuestions}`);
+
     // Генерируем вопросы
-    const questions = await generateTest(text, finalTitle, selectedTopic, questionsCount);
+    const questions = await generateTest(text, title, selectedTopic, numberOfQuestions);
 
-    // Возвращаем результат
-    return NextResponse.json({ 
-      success: true, 
-      data: {
-        title,
-        questions,
-        createdAt: new Date().toISOString()
-      }
+    // Генерируем уникальный идентификатор для теста
+    const testId = `test_${Date.now()}`;
+
+    // Возвращаем результат с вопросами и идентификатором теста
+    return NextResponse.json({
+      success: true,
+      testId: testId,
+      title: title,
+      questions: questions
     });
-  } catch (error: any) {
-    console.error('Ошибка генерации теста:', error);
-    
-    return NextResponse.json(
-      { 
-        error: 'Ошибка при генерации теста', 
-        message: error.message || 'Неизвестная ошибка' 
-      },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error('Ошибка при обработке запроса на генерацию теста:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Произошла неизвестная ошибка'
+    }, { status: 500 });
   }
 } 
