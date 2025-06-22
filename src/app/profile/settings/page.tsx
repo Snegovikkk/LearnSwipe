@@ -21,7 +21,6 @@ export default function ProfileSettingsPage() {
     privacy: 'public'
   });
 
-  // Загружаем данные пользователя при монтировании компонента
   useEffect(() => {
     if (user) {
       try {
@@ -121,7 +120,6 @@ export default function ProfileSettingsPage() {
   };
 
   const handleSaveSettings = () => {
-    // Здесь будет сохранение настроек на сервер
     setMessage({
       text: 'Настройки успешно сохранены',
       type: 'success'
@@ -142,7 +140,6 @@ export default function ProfileSettingsPage() {
             <h1 className="text-2xl font-bold">Настройки профиля</h1>
           </div>
           
-          {/* Отображаем сообщение об ошибке авторизации, если пользователь не авторизован и загрузка завершена */}
           {!authLoading && !user && (
             <div className="p-4 mb-6 rounded-lg bg-red-50 text-red-800 border border-red-200">
               Вы не авторизованы. Пожалуйста, <button 
@@ -154,7 +151,6 @@ export default function ProfileSettingsPage() {
             </div>
           )}
           
-          {/* Сообщения */}
           {message && (
             <div 
               className={`p-4 mb-6 rounded-lg ${
@@ -178,7 +174,6 @@ export default function ProfileSettingsPage() {
             </div>
           ) : (
             <>
-              {/* Личная информация */}
               <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200 mb-6">
                 <h2 className="text-xl font-semibold mb-6 flex items-center">
                   <FaUser className="mr-2 text-primary-500" /> Личная информация
@@ -229,7 +224,6 @@ export default function ProfileSettingsPage() {
                 </form>
               </div>
               
-              {/* Безопасность */}
               <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200 mb-6">
                 <h2 className="text-xl font-semibold mb-6 flex items-center">
                   <FaLock className="mr-2 text-primary-500" /> Безопасность
@@ -254,13 +248,11 @@ export default function ProfileSettingsPage() {
                 </div>
               </div>
 
-              {/* Общие настройки */}
               <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200 mb-6">
                 <h2 className="text-xl font-semibold mb-6 flex items-center">
                   <FaCog className="mr-2 text-primary-500" /> Общие настройки
                 </h2>
 
-                {/* Переключатель для уведомлений */}
                 <div className="flex items-center justify-between py-3 border-b border-neutral-200">
                   <div className="flex items-center">
                     <FaBell className="text-neutral-500 mr-3" />
@@ -283,7 +275,6 @@ export default function ProfileSettingsPage() {
                   </button>
                 </div>
 
-                {/* Переключатель для автопроигрывания */}
                 <div className="flex items-center justify-between py-3">
                   <div className="flex items-center">
                     <FaCheck className="text-neutral-500 mr-3" />
@@ -307,12 +298,11 @@ export default function ProfileSettingsPage() {
                 </div>
               </div>
 
-              {/* Предпочтения */}
               <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200 mb-6">
                 <h2 className="text-xl font-semibold mb-6">Предпочтения</h2>
 
                 <div className="mb-4">
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
+                  <label htmlFor="language" className="block text-sm font-medium text-neutral-700 mb-1">
                     Язык приложения
                   </label>
                   <select 
@@ -325,7 +315,6 @@ export default function ProfileSettingsPage() {
                   </select>
                 </div>
 
-                {/* Настройки приватности */}
                 <div>
                   <label className="block text-sm font-medium text-neutral-700 mb-1">
                     <div className="flex items-center">
@@ -357,7 +346,6 @@ export default function ProfileSettingsPage() {
                 </div>
               </div>
 
-              {/* Кнопка возврата */}
               <div className="mt-8">
                 <button 
                   className="btn-secondary w-full py-3 rounded-lg"
