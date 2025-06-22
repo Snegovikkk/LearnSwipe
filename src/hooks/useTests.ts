@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import supabase from '@/lib/supabase';
 import { Test, TestResult, Question, Answer } from '@/lib/supabase';
 import { TestQuestion } from '@/lib/deepseek';
@@ -25,7 +25,7 @@ export default function useTests() {
   const [error, setError] = useState<string | null>(null);
 
   // Получение всех тестов из базы данных
-  const getTests = async (): Promise<Test[]> => {
+  const getTests = useCallback(async (): Promise<Test[]> => {
     setLoading(true);
     setError(null);
     try {
@@ -43,10 +43,10 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Получение тестов пользователя
-  const getUserTests = async (userId: string): Promise<Test[]> => {
+  const getUserTests = useCallback(async (userId: string): Promise<Test[]> => {
     setLoading(true);
     setError(null);
     try {
@@ -69,10 +69,10 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Получение конкретного теста по ID
-  const getTestById = async (testId: string): Promise<Test | null> => {
+  const getTestById = useCallback(async (testId: string): Promise<Test | null> => {
     setLoading(true);
     setError(null);
     try {
@@ -91,10 +91,10 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Создание нового теста
-  const createTest = async ({ userId, title, questions, description }: CreateTestProps): Promise<Test | null> => {
+  const createTest = useCallback(async ({ userId, title, questions, description }: CreateTestProps): Promise<Test | null> => {
     setLoading(true);
     setError(null);
     try {
@@ -121,10 +121,10 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Удаление теста
-  const deleteTest = async (testId: string): Promise<boolean> => {
+  const deleteTest = useCallback(async (testId: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
     try {
@@ -151,10 +151,10 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Сохранение результата теста
-  const saveTestResult = async ({ userId, testId, score, answers }: SaveTestResultProps): Promise<TestResult | null> => {
+  const saveTestResult = useCallback(async ({ userId, testId, score, answers }: SaveTestResultProps): Promise<TestResult | null> => {
     setLoading(true);
     setError(null);
     try {
@@ -183,10 +183,10 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Получение истории результатов пользователя
-  const getUserResults = async (userId: string): Promise<TestResult[]> => {
+  const getUserResults = useCallback(async (userId: string): Promise<TestResult[]> => {
     setLoading(true);
     setError(null);
     try {
@@ -218,10 +218,10 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Получение результатов пользователя по конкретному тесту
-  const getUserResultsByTestId = async (userId: string, testId: string): Promise<TestResult[]> => {
+  const getUserResultsByTestId = useCallback(async (userId: string, testId: string): Promise<TestResult[]> => {
     setLoading(true);
     setError(null);
     try {
@@ -253,10 +253,10 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Получение конкретного результата теста по ID
-  const getTestResultById = async (resultId: string): Promise<TestResult | null> => {
+  const getTestResultById = useCallback(async (resultId: string): Promise<TestResult | null> => {
     setLoading(true);
     setError(null);
     try {
@@ -275,10 +275,10 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Получение вопросов для конкретного теста
-  const getTestQuestions = async (testId: string): Promise<Question[]> => {
+  const getTestQuestions = useCallback(async (testId: string): Promise<Question[]> => {
     setLoading(true);
     setError(null);
     try {
@@ -297,10 +297,10 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Получение ответов для конкретного вопроса
-  const getQuestionAnswers = async (questionId: string): Promise<Answer[]> => {
+  const getQuestionAnswers = useCallback(async (questionId: string): Promise<Answer[]> => {
     setLoading(true);
     setError(null);
     try {
@@ -319,7 +319,7 @@ export default function useTests() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return {
     loading,
