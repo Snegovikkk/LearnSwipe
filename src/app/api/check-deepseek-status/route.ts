@@ -3,6 +3,8 @@ import { getServerSession } from 'next-auth/next';
 import { checkDeepSeekStatus } from '@/lib/deepseek';
 import { auth } from '@/auth';
 
+export const dynamic = 'force-dynamic'; // Явно указываем, что маршрут динамический
+
 // Список email-адресов администраторов
 const ADMIN_EMAILS = ['admin@test.com', 'admin@lume.com', 'dima@test.ru']; // Добавьте свою почту
 
