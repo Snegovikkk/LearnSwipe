@@ -261,6 +261,7 @@ export default function useNotifications() {
       
       // Возвращаем настройки по умолчанию
       return {
+        id: `mock-${userId}`,
         user_id: userId,
         email_notifications: true,
         browser_notifications: true,
@@ -268,6 +269,8 @@ export default function useNotifications() {
         new_test_notifications: true,
         system_notifications: true,
         reminder_notifications: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
     } catch (error: any) {
       console.error("Ошибка при получении настроек уведомлений:", error);
@@ -299,7 +302,20 @@ export default function useNotifications() {
       // if (error) throw error;
       // return data;
       
-      return { ...settings, user_id: userId };
+      // Создаем объект с гарантированно заполненными обязательными полями
+      const currentDate = new Date().toISOString();
+      return {
+        id: settings.id || `mock-${userId}`,
+        user_id: userId,
+        email_notifications: settings.email_notifications ?? true,
+        browser_notifications: settings.browser_notifications ?? true,
+        test_result_notifications: settings.test_result_notifications ?? true,
+        new_test_notifications: settings.new_test_notifications ?? true,
+        system_notifications: settings.system_notifications ?? true,
+        reminder_notifications: settings.reminder_notifications ?? true,
+        created_at: settings.created_at || currentDate,
+        updated_at: currentDate
+      };
     } catch (error: any) {
       console.error("Ошибка при обновлении настроек уведомлений:", error);
       setError(error.message || "Не удалось обновить настройки уведомлений");

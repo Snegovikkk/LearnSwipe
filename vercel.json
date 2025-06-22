@@ -1,0 +1,34 @@
+{
+  "env": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://qegmlgtamtmwpmidyxmz.supabase.co",
+    "NEXT_PUBLIC_API_URL": "https://api.lume-learning.ru",
+    "NEXT_PUBLIC_DEEP_SEEK_ENABLED": "false",
+    "NEXT_PUBLIC_WEBHOOK_URL": "https://api.lume-learning.ru/api/notifications/send",
+    "NEXT_PUBLIC_APP_NAME": "Lume"
+  },
+  "rewrites": [
+    { "source": "/api/notifications/send", "destination": "https://api.lume-learning.ru/api/notifications/send" },
+    { "source": "/api/check-deepseek-status", "destination": "https://api.lume-learning.ru/api/check-deepseek-status" }
+  ],
+  "buildCommand": "next build",
+  "installCommand": "npm install",
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        }
+      ]
+    }
+  ]
+} 

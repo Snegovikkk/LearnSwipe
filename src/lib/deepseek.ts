@@ -21,7 +21,7 @@ export interface DeepSeekStatus {
 }
 
 // Конфигурация DeepSeek API
-const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY || 'sk-672304a894b94decb4524c0faf3c3684';
+const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 // Функция для проверки статуса API DeepSeek
@@ -56,6 +56,17 @@ export async function checkDeepSeekStatus(): Promise<DeepSeekStatus> {
 
 // Функция для запроса к DeepSeek API
 async function callDeepSeekAPI(messages: any[], isStatusCheck: boolean = false): Promise<string> {
+  if (!DEEPSEEK_API_KEY) {
+    // Если это проверка статуса, возвращаем ошибку, что ключ не установлен
+    if (isStatusCheck) {
+      throw new Error('Ключ DEEPSEEK_API_KEY не установлен в переменных окружения.');
+    }
+    // В других случаях можно вернуть демо-ответ или просто выбросить ошибку
+    // В данном случае, мы сообщаем об ошибке
+    console.error('DEEPSEEK_API_KEY is not set.');
+    throw new Error('API ключ для DeepSeek не настроен.');
+  }
+  
   try {
     // Если это проверка статуса, используем минимальное количество токенов
     const maxTokens = isStatusCheck ? 10 : 4000;

@@ -6,7 +6,7 @@ import { FaBell, FaCheckDouble, FaTrashAlt, FaSpinner } from 'react-icons/fa';
 import { motion, AnimatePresence } from 'framer-motion';
 import useAuth from '@/hooks/useAuth';
 import useNotifications from '@/hooks/useNotifications';
-import { Notification, NotificationType } from '@/lib/supabase';
+import type { Notification, NotificationType } from '@/lib/supabase';
 
 // Функция для форматирования даты
 const formatDate = (dateString: string) => {
@@ -115,7 +115,7 @@ export default function NotificationBell() {
       setLoadingNotifications(true);
       getUnreadNotifications(user.id)
         .then(data => {
-          setNotifications(data);
+          setNotifications(data.notifications);
           setLoadingNotifications(false);
         })
         .catch(() => {

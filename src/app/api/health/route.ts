@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -34,7 +36,7 @@ export async function GET() {
       status: dbStatus
     },
     version: '1.0.0',
-    uptime: process.uptime()
+    // uptime: process.uptime() // Закомментировано, так как недоступно во всех средах
   };
   
   return NextResponse.json(healthInfo);
