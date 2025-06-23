@@ -203,7 +203,7 @@ export default function Navbar() {
                     aria-haspopup="true"
                   >
                     <span className="sr-only">Открыть меню пользователя</span>
-                    <div className="h-9 w-9 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold border-2 border-primary-200 shadow-md">
+                    <div style={{ backgroundColor: '#2563eb', color: '#fff' }} className="h-9 w-9 rounded-full flex items-center justify-center font-bold border-2 border-primary-200 shadow-md">
                       {getUserInitials()}
                     </div>
                   </button>

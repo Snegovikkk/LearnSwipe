@@ -325,45 +325,54 @@ export default function NotificationsPage() {
                         filteredNotifications.map((notification) => (
                           <div
                             key={notification.id}
-                            className={`p-4 cursor-pointer hover:bg-neutral-50 transition-colors flex ${
-                              selectedNotification?.id === notification.id ? 'bg-neutral-100' : notification.read ? 'bg-white' : 'bg-neutral-50'
-                            }`}
+                            className={`relative group p-4 mb-2 rounded-xl shadow-sm cursor-pointer flex transition-all duration-200 border-l-4 
+                              ${selectedNotification?.id === notification.id
+                                ? 'bg-primary-50 border-primary-600 shadow-lg scale-[1.02]'
+                                : !notification.read
+                                  ? 'bg-blue-50 border-blue-400 shadow-md'
+                                  : 'bg-white border-transparent hover:bg-neutral-50 hover:shadow'}
+                            `}
                             onClick={() => handleReadNotification(notification)}
                           >
-                            <div className="flex-1">
-                              <div className="flex items-start">
-                                {getNotificationIcon(notification.type as NotificationType)}
-                                <div className="flex-1">
-                                  <h3 className={`text-sm font-medium ${notification.read ? 'text-neutral-700' : 'text-neutral-900'}`}>
-                                    {notification.title}
-                                  </h3>
-                                  <p className="text-xs text-neutral-500 mt-1">
-                                    {formatDate(notification.created_at)}
-                                  </p>
-                                  <p className="text-xs text-neutral-500 mt-1">
-                                    {getNotificationTypeName(notification.type as NotificationType)}
-                                  </p>
-                                </div>
+                            <div className="flex-shrink-0 mr-3 mt-1">
+                              {getNotificationIcon(notification.type as NotificationType)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h3 className={`text-sm font-semibold ${notification.read ? 'text-neutral-700' : 'text-primary-800'}`}>{notification.title}</h3>
+                                {!notification.read && (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-primary-600 text-white animate-pulse ml-1">
+                                    Новое
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-neutral-400">{formatDate(notification.created_at)}</span>
+                                <span className={`text-xs font-medium rounded px-1.5 py-0.5 ml-1 ${
+                                  notification.type === 'test_result' ? 'bg-green-100 text-green-700' :
+                                  notification.type === 'system' ? 'bg-blue-100 text-blue-700' :
+                                  notification.type === 'reminder' ? 'bg-yellow-100 text-yellow-800' :
+                                  notification.type === 'new_test' ? 'bg-purple-100 text-purple-700' :
+                                  'bg-neutral-100 text-neutral-500'
+                                }`}>
+                                  {getNotificationTypeName(notification.type as NotificationType)}
+                                </span>
                               </div>
                               <div className="mt-1 text-sm text-neutral-600 line-clamp-2">
                                 {notification.message}
                               </div>
-                              
-                              {!notification.read && (
-                                <div className="mt-2">
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                                    Новое
-                                  </span>
-                                </div>
+                              {notification.link && (
+                                <span className="inline-flex items-center text-xs text-primary-600 mt-1">
+                                  Подробнее <svg className="ml-1 w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                                </span>
                               )}
                             </div>
-                            
                             <button
                               onClick={(e) => handleDeleteNotification(notification.id, e)}
-                              className="text-neutral-400 hover:text-red-500 transition-colors ml-2 self-start"
+                              className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 text-neutral-400 hover:text-red-500 transition-opacity z-10 bg-white rounded-full p-1 shadow"
                               aria-label="Удалить уведомление"
                             >
-                              <FaTrashAlt className="h-3.5 w-3.5" />
+                              <FaTrashAlt className="h-4 w-4" />
                             </button>
                           </div>
                         ))
