@@ -133,7 +133,7 @@ export default function Navbar() {
   const mobileMenuItems = [
     { name: 'Главная', href: '/', icon: FaHome },
     { name: 'Тесты', href: '/tests', icon: FaBookOpen },
-    { name: 'Создать тест', href: '/tests/create', icon: FaPlus },
+    { name: 'Создать тест', href: '/create', icon: FaPlus },
     { name: 'Профиль', href: '/profile', icon: FaUser },
     { name: 'Мои результаты', href: '/profile/results', icon: FaTachometerAlt },
     { name: 'Уведомления', href: '/profile/notifications', icon: FaBell, badge: unreadNotifications },
@@ -179,9 +179,9 @@ export default function Navbar() {
                 Тесты
               </Link>
               <Link 
-                href="/tests/create"
+                href="/create"
                 className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
-                  pathname === '/tests/create'
+                  pathname === '/create'
                   ? 'border-primary-500 text-neutral-900' 
                   : 'border-transparent text-neutral-500 hover:border-neutral-300 hover:text-neutral-700'
                 }`}
