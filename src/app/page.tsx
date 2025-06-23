@@ -40,8 +40,8 @@ export default function Home() {
       <section className="py-12 bg-white border-t border-neutral-100">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex items-center p-4">
-              <div className="w-12 h-12 flex items-center justify-center bg-primary-100 text-primary-600 rounded-full mr-4">
+            <div className="flex flex-col items-center p-4 text-center">
+              <div className="w-12 h-12 flex items-center justify-center bg-primary-100 text-primary-600 rounded-full mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
                 </svg>
@@ -52,8 +52,8 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="flex items-center p-4">
-              <div className="w-12 h-12 flex items-center justify-center bg-primary-100 text-primary-600 rounded-full mr-4">
+            <div className="flex flex-col items-center p-4 text-center">
+              <div className="w-12 h-12 flex items-center justify-center bg-primary-100 text-primary-600 rounded-full mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
                 </svg>
@@ -64,8 +64,8 @@ export default function Home() {
               </div>
             </div>
             
-            <div className="flex items-center p-4">
-              <div className="w-12 h-12 flex items-center justify-center bg-primary-100 text-primary-600 rounded-full mr-4">
+            <div className="flex flex-col items-center p-4 text-center">
+              <div className="w-12 h-12 flex items-center justify-center bg-primary-100 text-primary-600 rounded-full mb-4">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                   <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
