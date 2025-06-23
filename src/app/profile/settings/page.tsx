@@ -17,8 +17,6 @@ export default function ProfileSettingsPage() {
   const [settings, setSettings] = useState({
     notifications: true,
     autoplay: true,
-    language: 'Русский',
-    privacy: 'public'
   });
 
   useEffect(() => {
@@ -39,13 +37,6 @@ export default function ProfileSettingsPage() {
     setSettings(prev => ({
       ...prev,
       [setting]: !prev[setting]
-    }));
-  };
-
-  const changeSetting = (setting: 'language' | 'privacy', value: string) => {
-    setSettings(prev => ({
-      ...prev,
-      [setting]: value
     }));
   };
   
@@ -117,13 +108,6 @@ export default function ProfileSettingsPage() {
     } finally {
       setIsResetting(false);
     }
-  };
-
-  const handleSaveSettings = () => {
-    setMessage({
-      text: 'Настройки успешно сохранены',
-      type: 'success'
-    });
   };
 
   return (
@@ -294,54 +278,6 @@ export default function ProfileSettingsPage() {
                         ${settings.autoplay ? 'translate-x-6' : 'translate-x-1'}
                       `}
                     />
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200 mb-6">
-                <h2 className="text-xl font-semibold mb-6">Предпочтения</h2>
-
-                <div className="mb-4">
-                  <label htmlFor="language" className="block text-sm font-medium text-neutral-700 mb-1">
-                    Язык приложения
-                  </label>
-                  <select 
-                    value={settings.language}
-                    onChange={(e) => changeSetting('language', e.target.value)}
-                    className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-200 focus:border-primary-300 transition-all"
-                  >
-                    <option value="Русский">Русский</option>
-                    <option value="English">English</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-neutral-700 mb-1">
-                    <div className="flex items-center">
-                      <FaLock className="text-neutral-500 mr-2" />
-                      <span>Приватность профиля</span>
-                    </div>
-                  </label>
-                  <select 
-                    value={settings.privacy}
-                    onChange={(e) => changeSetting('privacy', e.target.value)}
-                    className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-200 focus:border-primary-300 transition-all"
-                  >
-                    <option value="public">Публичный</option>
-                    <option value="private">Приватный</option>
-                    <option value="friends">Только для друзей</option>
-                  </select>
-                  <p className="text-xs text-neutral-500 mt-1">
-                    Определяет, кто может видеть ваши созданные тесты и статистику
-                  </p>
-                </div>
-                
-                <div className="mt-6">
-                  <button 
-                    onClick={handleSaveSettings}
-                    className="btn-primary px-6 py-3 rounded-lg w-full"
-                  >
-                    Сохранить настройки
                   </button>
                 </div>
               </div>
