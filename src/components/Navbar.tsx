@@ -119,12 +119,12 @@ export default function Navbar() {
 
   // Получаем инициалы пользователя
   const getUserInitials = () => {
-    if (user && 'name' in user && typeof user.name === 'string' && user.name) {
-      const nameParts = user.name.split(' ');
-      if (nameParts.length > 1) {
+    if (user && user.user_metadata && user.user_metadata.name) {
+      const nameParts = user.user_metadata.name.split(' ');
+      if (nameParts.length > 1 && nameParts[0] && nameParts[1]) {
         return `${nameParts[0][0]}${nameParts[1][0]}`.toUpperCase();
       }
-      return user.name[0].toUpperCase();
+      return user.user_metadata.name[0].toUpperCase();
     }
     return user?.email?.[0].toUpperCase() || 'U';
   };
@@ -220,7 +220,7 @@ export default function Navbar() {
                       transition={{ duration: 0.2 }}
                     >
                       <div className="px-4 py-3 text-sm text-neutral-700 border-b border-neutral-100 bg-neutral-50">
-                        <p className="font-medium">{user && 'name' in user && typeof user.name === 'string' ? user.name : 'Пользователь'}</p>
+                        <p className="font-medium">{user.user_metadata?.name || 'Пользователь'}</p>
                         <p className="text-xs truncate mt-1 text-neutral-500">{user?.email || ''}</p>
                       </div>
                       <div className="py-1">
@@ -282,20 +282,12 @@ export default function Navbar() {
                 </AnimatePresence>
               </div>
             ) : (
-              <div className="flex items-center space-x-4">
-                <Link 
-                  href="/auth/login"
-                  className="text-primary-600 hover:text-primary-900 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Войти
-                </Link>
-                <Link 
-                  href="/auth/signup"
-                  className="bg-primary-600 text-white hover:bg-primary-700 px-3 py-2 rounded-md text-sm font-medium"
-                >
-                  Регистрация
-                </Link>
-              </div>
+              <Link
+                href="/auth/login"
+                className="btn-secondary text-sm px-4 py-2 rounded-lg"
+              >
+                Войти
+              </Link>
             )}
           </div>
           
@@ -382,7 +374,7 @@ export default function Navbar() {
                         {getUserInitials()}
                       </div>
                       <div>
-                        <div className="text-base font-medium">{user && 'name' in user && typeof user.name === 'string' ? user.name : 'Пользователь'}</div>
+                        <div className="text-base font-medium">{user.user_metadata?.name || 'Пользователь'}</div>
                         <div className="text-xs text-neutral-500 truncate max-w-[180px]">{user?.email || ''}</div>
                       </div>
                     </div>
