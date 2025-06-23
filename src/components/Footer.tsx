@@ -22,7 +22,7 @@ export default function Footer() {
           <h3 className="font-bold mb-2">Пользователям</h3>
           <ul>
             <li><Link href="/faq" className="hover:underline">Вопрос-ответ (FAQ)</Link></li>
-            <li><a href="https://t.me/sedimatyt" target="_blank" rel="noopener noreferrer" className="hover:underline text-primary-600">Обратная связь</a></li>
+            <li><a href="https://t.me/lumeswipe" target="_blank" rel="noopener noreferrer" className="hover:underline text-primary-600">Обратная связь</a></li>
           </ul>
         </div>
       </div>

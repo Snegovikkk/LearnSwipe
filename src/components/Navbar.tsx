@@ -203,7 +203,7 @@ export default function Navbar() {
                     aria-haspopup="true"
                   >
                     <span className="sr-only">Открыть меню пользователя</span>
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-medium shadow-md">
+                    <div className="h-9 w-9 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold border-2 border-primary-200 shadow-md">
                       {getUserInitials()}
                     </div>
                   </button>
@@ -370,7 +370,7 @@ export default function Navbar() {
                     variants={menuItemVariants}
                   >
                     <div className="px-3 py-3 flex items-center space-x-3 mb-2">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-medium">
+                      <div className="h-10 w-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold border-2 border-primary-200 shadow-md">
                         {getUserInitials()}
                       </div>
                       <div>
