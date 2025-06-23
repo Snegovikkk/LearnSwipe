@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import Navbar from '@/components/Navbar';
 import { Providers } from './providers';
+import Footer from '@/components/Footer';
 
 const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 
@@ -27,11 +28,7 @@ export default function RootLayout({
           <main>
             {children}
           </main>
-          <footer className="py-8 text-center text-neutral-500 text-sm mt-auto">
-            <div className="container mx-auto px-4">
-              <p>&copy; {new Date().getFullYear()} Lume. Все права защищены.</p>
-            </div>
-          </footer>
+          <Footer />
         </Providers>
       </body>
     </html>
