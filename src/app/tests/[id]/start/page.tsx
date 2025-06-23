@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FaArrowLeft, FaCheck, FaTimes, FaClock, FaChevronDown, FaChevronUp, FaSpinner, FaLightbulb, FaFileAlt, FaSearch, FaRedoAlt } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaTimes, FaClock, FaChevronDown, FaChevronUp, FaSpinner, FaLightbulb, FaFileAlt, FaSearch, FaRedoAlt, FaChartLine } from 'react-icons/fa';
 import { TestQuestion } from '@/lib/openai';
 import useTests from '@/hooks/useTests';
 import useAuth from '@/hooks/useAuth';
@@ -693,7 +693,6 @@ export default function TestStartPage() {
                 К информации о тесте
               </button>
             </Link>
-            
             <Link href="/tests">
               <button
                 className="btn btn-outline w-full sm:w-auto flex items-center gap-2"
@@ -702,7 +701,14 @@ export default function TestStartPage() {
                 Найти другие тесты
               </button>
             </Link>
-            
+            <Link href={`/tests/${params.id}/results`}>
+              <button
+                className="w-full sm:w-auto flex items-center gap-2 font-medium bg-primary-600 text-white rounded-md px-4 py-2 hover:bg-primary-700 transition"
+              >
+                <FaChartLine className="w-4 h-4" />
+                Посмотреть результаты
+              </button>
+            </Link>
             <button
               className="btn btn-outline w-full sm:w-auto flex items-center gap-2 font-medium text-black"
               onClick={handleClearResults}

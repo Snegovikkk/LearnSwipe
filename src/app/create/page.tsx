@@ -243,11 +243,8 @@ export default function CreatePage() {
                   type="button"
                   onClick={handleGenerateTest}
                   disabled={!formValid || aiLoading}
-                  className={`px-6 py-3 rounded-lg text-white flex items-center justify-center transition font-semibold text-base ${
-                    !formValid || aiLoading
-                      ? 'bg-neutral-300 cursor-not-allowed'
-                      : 'bg-primary-600 hover:bg-primary-700 shadow-sm'
-                  }`}
+                  className={`px-6 py-3 rounded-lg text-white flex items-center justify-center transition font-semibold text-base bg-primary-600 hover:bg-primary-700 shadow-sm
+                    ${(!formValid || aiLoading) ? 'opacity-60 cursor-not-allowed' : ''}`}
                 >
                   Создать тест
                   <FaChevronRight className="ml-2" size={14} />
