@@ -243,18 +243,14 @@ export default function CreatePage() {
                   type="button"
                   onClick={handleGenerateTest}
                   disabled={!formValid || aiLoading}
-                  className={`px-6 py-2 rounded-lg text-white flex items-center transition font-medium ${
+                  className={`px-6 py-3 rounded-lg text-white flex items-center justify-center transition font-semibold text-base ${
                     !formValid || aiLoading
-                      ? 'bg-neutral-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700'
+                      ? 'bg-neutral-300 cursor-not-allowed'
+                      : 'bg-primary-600 hover:bg-primary-700 shadow-sm'
                   }`}
                 >
-                  {aiLoading ? (
-                    <FaSpinner className="animate-spin mr-2" />
-                  ) : (
-                    <FaRobot className="mr-2" />
-                  )}
                   Создать тест
+                  <FaChevronRight className="ml-2" size={14} />
                 </button>
               </div>
             </div>
