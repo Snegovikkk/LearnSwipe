@@ -2,7 +2,7 @@ export default function AboutPage() {
   return (
     <div className="max-w-3xl mx-auto py-12 px-4">
       <h1 className="text-2xl font-bold mb-6">О проекте</h1>
-      <div className="space-y-4 text-neutral-800 text-base">
+      <div className="space-y-4 text-neutral-800 text-base text-justify">
         <p><b>Lume</b> — это современная платформа для создания и прохождения тестов с помощью искусственного интеллекта.</p>
         <p>Наша цель — сделать процесс обучения и самопроверки максимально простым, быстрым и интересным для каждого пользователя.</p>
         <p>Проект был создан двумя студентами, которые верят, что технологии могут сделать образование доступнее и эффективнее.</p>

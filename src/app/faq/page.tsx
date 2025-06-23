@@ -32,8 +32,8 @@ export default function FAQPage() {
       <div className="space-y-6">
         {faq.map((item, idx) => (
           <div key={idx} className="bg-neutral-50 border rounded-lg p-4">
-            <div className="font-semibold mb-2">{item.question}</div>
-            <div className="text-neutral-700">{item.answer}</div>
+            <div className="font-semibold mb-2 text-justify">{item.question}</div>
+            <div className="text-neutral-700 text-justify">{item.answer}</div>
           </div>
         ))}
       </div>
