@@ -132,8 +132,16 @@ export default function ProfileSettingsPage() {
       setPasswordMessage({ text: 'Пароль должен содержать не менее 6 символов.', type: 'error' });
       return;
     }
+    if (!user) {
+      setPasswordMessage({ text: 'Пользователь не найден.', type: 'error' });
+      return;
+    }
+    if (!user?.email) {
+      setPasswordMessage({ text: 'Email пользователя не найден.', type: 'error' });
+      return;
+    }
     setIsChangingPassword(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email, password: oldPassword });
+    const { error: signInError } = await supabase.auth.signInWithPassword({ email: user.email as string, password: oldPassword });
     if (signInError) {
       setPasswordMessage({ text: 'Старый пароль неверный.', type: 'error' });
       setIsChangingPassword(false);
