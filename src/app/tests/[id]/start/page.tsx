@@ -311,13 +311,6 @@ export default function TestStartPage() {
     } catch (error) {
       console.log('Haptic feedback not supported');
     }
-    
-    // Автоматический переход к следующему вопросу через 1.5 секунды, только если не последний вопрос
-    if (currentIndex < questions.length - 1) {
-      setTimeout(() => {
-        handleNextQuestion();
-      }, 1500);
-    }
   };
   
   // Обработчики свайпов
@@ -792,7 +785,30 @@ export default function TestStartPage() {
             className="h-full w-full flex flex-col justify-center px-4 overflow-auto"
             ref={containerRef}
           >
+            {/* Навигация по вопросам */}
+            <div className="flex flex-wrap gap-2 justify-center mb-4">
+              {questions.map((q, idx) => {
+                const answered = hasAnswered(q.id);
+                const isCurrent = idx === currentIndex;
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center border text-sm font-semibold transition-all
+                      ${isCurrent ? 'bg-primary-600 text-white border-primary-600 scale-110 shadow' : answered ? 'bg-green-50 text-green-700 border-green-300' : 'bg-white text-neutral-400 border-neutral-200 hover:border-primary-400'}
+                      ${!answered ? 'ring-2 ring-yellow-200' : ''}
+                    `}
+                    aria-label={`Перейти к вопросу ${idx + 1}`}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
             <div className="max-w-3xl mx-auto w-full card mb-6">
+              <div className="mb-2 text-sm text-neutral-500 font-medium">
+                Вопрос {currentIndex + 1} из {questions.length}
+              </div>
               <h3 className="text-xl font-medium mb-6">{questions[currentIndex].question}</h3>
               
               <div className="space-y-3 mb-5">
@@ -880,7 +896,8 @@ export default function TestStartPage() {
               ) : (
                 <button
                   onClick={handleFinishTest}
-                  className="px-4 py-2 rounded-md bg-primary-600 text-white hover:bg-primary-700 font-medium"
+                  className={`px-4 py-2 rounded-md bg-primary-600 text-white hover:bg-primary-700 font-medium ${userAnswers.length < questions.length ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={userAnswers.length < questions.length}
                 >
                   Завершить тест
                 </button>
