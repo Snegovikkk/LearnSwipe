@@ -680,14 +680,15 @@ export default function TestStartPage() {
           </div>
           
           <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
-            <button
-              type="button"
-              onClick={() => setShowAnswers(true)}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium bg-primary-600 text-white rounded-md px-4 py-2 hover:bg-primary-700 transition shadow"
-            >
-              <span className="inline-block"><FaFileAlt className="w-4 h-4" /></span>
-              <span>Мои ответы</span>
-            </button>
+            <Link href={`/tests/${params.id}/answers`}>
+              <button
+                type="button"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium bg-primary-600 text-white rounded-md px-4 py-2 hover:bg-primary-700 transition shadow"
+              >
+                <span className="inline-block"><FaFileAlt className="w-4 h-4" /></span>
+                <span>Мои ответы</span>
+              </button>
+            </Link>
             <Link href="/tests/create">
               <button
                 type="button"
