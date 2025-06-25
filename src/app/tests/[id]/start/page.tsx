@@ -662,7 +662,7 @@ export default function TestStartPage() {
             </div>
           </div>
           
-          <div className="card text-center mb-6 p-6">
+          <div className="card text-center mb-6 p-6 max-w-md mx-auto flex flex-col items-center">
             <div 
               className={`w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-bold
                 ${results.percentage >= 80 
@@ -692,38 +692,38 @@ export default function TestStartPage() {
             </div>
           </div>
           
-          <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
-            <Link href={`/tests/${params.id}/answers`}>
+          <div className="mt-8 flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-6 w-full max-w-2xl mx-auto">
+            <Link href={`/tests/${params.id}/answers`} className="flex-1 w-full">
               <button
                 type="button"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium bg-primary-600 text-white rounded-md px-4 py-2 hover:bg-primary-700 transition shadow"
+                className="w-full min-w-[180px] h-14 flex items-center justify-center gap-2 font-medium bg-primary-600 text-white rounded-xl px-6 py-3 hover:bg-primary-700 transition-all duration-200 shadow text-base"
               >
-                <span className="inline-block"><FaFileAlt className="w-4 h-4" /></span>
+                <span className="inline-block"><FaFileAlt className="w-5 h-5" /></span>
                 <span>Мои ответы</span>
               </button>
             </Link>
             <button
               type="button"
               onClick={handleClearAndCreate}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium border border-primary-600 text-primary-600 rounded-md px-4 py-2 hover:bg-primary-50 transition shadow"
+              className="w-full min-w-[180px] h-14 flex items-center justify-center gap-2 font-medium border border-primary-600 text-primary-600 rounded-xl px-6 py-3 hover:bg-primary-50 transition-all duration-200 shadow text-base"
             >
-              <FaChartLine className="w-4 h-4" />
+              <FaChartLine className="w-5 h-5" />
               Создать новый тест
             </button>
             <button
               type="button"
               onClick={handleClearAndRestart}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium border border-yellow-400 text-yellow-700 rounded-md px-4 py-2 hover:bg-yellow-50 transition shadow"
+              className="w-full min-w-[180px] h-14 flex items-center justify-center gap-2 font-medium border border-yellow-400 text-yellow-700 rounded-xl px-6 py-3 hover:bg-yellow-50 transition-all duration-200 shadow text-base"
             >
-              <FaRedoAlt className="w-4 h-4" />
+              <FaRedoAlt className="w-5 h-5" />
               Пройти тест заново
             </button>
-            <Link href="/">
+            <Link href="/" className="flex-1 w-full">
               <button
                 type="button"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium border border-neutral-300 text-neutral-700 rounded-md px-4 py-2 hover:bg-neutral-100 transition shadow"
+                className="w-full min-w-[180px] h-14 flex items-center justify-center gap-2 font-medium border border-neutral-300 text-neutral-700 rounded-xl px-6 py-3 hover:bg-neutral-100 transition-all duration-200 shadow text-base"
               >
-                <FaArrowLeft className="w-4 h-4" />
+                <FaArrowLeft className="w-5 h-5" />
                 Выйти в главное меню
               </button>
             </Link>
@@ -882,12 +882,16 @@ export default function TestStartPage() {
                     return (
                       <button
                         key={option.id}
-                        className={`w-full p-4 rounded-lg text-left transition-all border border-neutral-200 bg-white hover:border-neutral-300 ${isSelected ? 'bg-neutral-100' : ''}`}
+                        className={`w-full p-4 rounded-lg text-left transition-all border bg-white
+                          ${isSelected ? 'bg-primary-50 border-2 border-primary-600 font-semibold text-primary-700 shadow' : 'border-neutral-200 hover:bg-neutral-50'}
+                        `}
                         onClick={() => handleSelectOption(questions[currentIndex].id, option.id, option.isCorrect)}
                         disabled={hasUserAnswered}
                       >
                         <div className="flex items-center">
-                          <span className="flex-shrink-0 rounded-full w-6 h-6 flex items-center justify-center border border-neutral-300 text-sm font-medium mr-3">
+                          <span className={`flex-shrink-0 rounded-full w-6 h-6 flex items-center justify-center border text-sm font-medium mr-3
+                            ${isSelected ? 'border-primary-600 bg-primary-100 text-primary-700' : 'border-neutral-300 bg-white text-neutral-700'}`}
+                          >
                             {option.id.toUpperCase()}
                           </span>
                           <span>{option.text}</span>
