@@ -9,6 +9,7 @@ import useTests from '@/hooks/useTests';
 import useAuth from '@/hooks/useAuth';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
+import { Dialog } from '@headlessui/react';
 
 // Добавляем стили для печати
 const printStyles = `
@@ -113,6 +114,7 @@ export default function TestStartPage() {
   const [resultSaved, setResultSaved] = useState(false);
   const [testResults, setTestResults] = useState<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [showAnswers, setShowAnswers] = useState(false);
   
   // Добавляем константу для ключа localStorage
   const TEST_RESULTS_STORAGE_KEY = 'lastTestResults';
@@ -678,38 +680,73 @@ export default function TestStartPage() {
           </div>
           
           <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
-            <Link href={`/tests/${params.id}`}>
+            <button
+              onClick={() => setShowAnswers(true)}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium bg-primary-600 text-white rounded-md px-4 py-2 hover:bg-primary-700 transition shadow"
+            >
+              <FaFileAlt className="w-4 h-4" />
+              Мои ответы
+            </button>
+            <Link href="/tests/create">
               <button
-                className="btn btn-outline w-full sm:w-auto flex items-center gap-2"
-              >
-                <FaFileAlt className="w-4 h-4" />
-                К информации о тесте
-              </button>
-            </Link>
-            <Link href="/tests">
-              <button
-                className="btn btn-outline w-full sm:w-auto flex items-center gap-2"
-              >
-                <FaSearch className="w-4 h-4" />
-                Найти другие тесты
-              </button>
-            </Link>
-            <Link href={`/tests/${params.id}/results`}>
-              <button
-                className="w-full sm:w-auto flex items-center gap-2 font-medium bg-primary-600 text-white rounded-md px-4 py-2 hover:bg-primary-700 transition"
+                className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium border border-primary-600 text-primary-600 rounded-md px-4 py-2 hover:bg-primary-50 transition shadow"
               >
                 <FaChartLine className="w-4 h-4" />
-                Посмотреть результаты
+                Создать новый тест
               </button>
             </Link>
-            <button
-              className="btn btn-outline w-full sm:w-auto flex items-center gap-2 font-medium text-black"
-              onClick={handleClearResults}
-            >
-              <FaRedoAlt className="w-4 h-4" />
-              Очистить результаты и пройти тест заново
-            </button>
+            <Link href="/">
+              <button
+                className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium border border-neutral-300 text-neutral-700 rounded-md px-4 py-2 hover:bg-neutral-100 transition shadow"
+              >
+                <FaArrowLeft className="w-4 h-4" />
+                Выйти в главное меню
+              </button>
+            </Link>
           </div>
+          {/* Модальное окно с разбором */}
+          <Dialog open={showAnswers} onClose={() => setShowAnswers(false)} className="fixed z-50 inset-0 overflow-y-auto">
+            <div className="flex items-center justify-center min-h-screen px-4">
+              <Dialog.Overlay className="fixed inset-0 bg-black bg-opacity-30" />
+              <div className="relative bg-white rounded-xl shadow-xl max-w-2xl w-full mx-auto p-6 z-10">
+                <Dialog.Title className="text-lg font-bold mb-4">Мои ответы и разбор</Dialog.Title>
+                <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
+                  {questions.map((q, idx) => {
+                    const userAnswer = userAnswers.find(a => a.questionId === q.id);
+                    const correctOption = q.options.find(o => o.isCorrect);
+                    const userOption = q.options.find(o => o.id === userAnswer?.answerId);
+                    return (
+                      <div key={q.id} className="border rounded-lg p-4 bg-neutral-50">
+                        <div className="mb-2 text-sm text-neutral-500 font-medium">Вопрос {idx + 1}</div>
+                        <div className="font-semibold mb-2">{q.question}</div>
+                        <div className="mb-2">
+                          <span className="font-medium">Ваш ответ: </span>
+                          <span className={userOption?.id === correctOption?.id ? 'text-green-600' : 'text-red-600'}>
+                            {userOption ? userOption.text : '—'}
+                          </span>
+                        </div>
+                        <div className="mb-2">
+                          <span className="font-medium">Правильный ответ: </span>
+                          <span className="text-green-700">{correctOption ? correctOption.text : '—'}</span>
+                        </div>
+                        {q.explanation && (
+                          <div className="bg-blue-50 border border-blue-100 rounded p-3 mt-2 text-sm">
+                            <span className="font-medium text-blue-700">Объяснение: </span>{q.explanation}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setShowAnswers(false)}
+                  className="mt-6 w-full bg-primary-600 text-white rounded-md py-2 font-medium hover:bg-primary-700 transition"
+                >
+                  Закрыть
+                </button>
+              </div>
+            </div>
+          </Dialog>
         </div>
       </div>
     );
@@ -795,10 +832,11 @@ export default function TestStartPage() {
                     key={q.id}
                     onClick={() => setCurrentIndex(idx)}
                     className={`w-8 h-8 rounded-full flex items-center justify-center border text-sm font-semibold transition-all
-                      ${isCurrent ? 'bg-primary-600 text-white border-primary-600 scale-110 shadow' : answered ? 'bg-green-50 text-green-700 border-green-300' : 'bg-white text-neutral-400 border-neutral-200 hover:border-primary-400'}
-                      ${!answered ? 'ring-2 ring-yellow-200' : ''}
-                    `}
-                    aria-label={`Перейти к вопросу ${idx + 1}`}
+                      ${isCurrent ? 'border-primary-600 bg-primary-50 scale-110 text-primary-700 shadow-md' : ''}
+                      ${answered ? 'border-green-500 bg-green-50 text-green-700' : ''}
+                      ${!answered && !isCurrent ? 'border-neutral-400 bg-white text-neutral-700' : ''}
+                      hover:scale-110 hover:shadow-lg`}
+                    style={{ borderWidth: 2 }}
                   >
                     {idx + 1}
                   </button>
@@ -816,19 +854,10 @@ export default function TestStartPage() {
                   questions[currentIndex].options.map((option) => {
                     const userAnswerId = getUserAnswer(questions[currentIndex].id);
                     const hasUserAnswered = hasAnswered(questions[currentIndex].id);
-                    
                     return (
                       <button
                         key={option.id}
-                        className={`w-full p-4 rounded-lg text-left transition-all ${
-                          !hasUserAnswered 
-                            ? 'border border-neutral-200 bg-white hover:border-neutral-300' 
-                            : option.isCorrect 
-                              ? 'bg-green-50 border border-green-300' 
-                              : userAnswerId === option.id 
-                                ? 'bg-red-50 border border-red-300' 
-                                : 'border border-neutral-200 bg-white opacity-70'
-                        }`}
+                        className={`w-full p-4 rounded-lg text-left transition-all border border-neutral-200 bg-white hover:border-neutral-300`}
                         onClick={() => handleSelectOption(questions[currentIndex].id, option.id, option.isCorrect)}
                         disabled={hasUserAnswered}
                       >
@@ -836,18 +865,7 @@ export default function TestStartPage() {
                           <span className="flex-shrink-0 rounded-full w-6 h-6 flex items-center justify-center border border-neutral-300 text-sm font-medium mr-3">
                             {option.id.toUpperCase()}
                           </span>
-                          
                           <span>{option.text}</span>
-                          
-                          {hasUserAnswered && (
-                            <span className="ml-auto">
-                              {option.isCorrect ? (
-                                <FaCheck className="text-green-500" />
-                              ) : userAnswerId === option.id ? (
-                                <FaTimes className="text-red-500" />
-                              ) : null}
-                            </span>
-                          )}
                         </div>
                       </button>
                     );
@@ -856,20 +874,6 @@ export default function TestStartPage() {
                   <p className="text-red-500">Ошибка: Варианты ответа отсутствуют для этого вопроса</p>
                 )}
               </div>
-              
-              {hasAnswered(questions[currentIndex].id) && questions[currentIndex].explanation && (
-                <div 
-                  className="bg-blue-50 p-4 rounded-lg border border-blue-100"
-                >
-                  <div className="flex">
-                    <FaLightbulb className="text-blue-500 mt-1 mr-3 flex-shrink-0" />
-                    <div>
-                      <h4 className="font-medium mb-1">Объяснение:</h4>
-                      <p className="text-sm text-neutral-700">{questions[currentIndex].explanation}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
             
             {/* Кнопки навигации */}
