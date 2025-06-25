@@ -681,14 +681,16 @@ export default function TestStartPage() {
           
           <div className="mt-8 flex flex-col sm:flex-row justify-center gap-3">
             <button
+              type="button"
               onClick={() => setShowAnswers(true)}
               className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium bg-primary-600 text-white rounded-md px-4 py-2 hover:bg-primary-700 transition shadow"
             >
-              <FaFileAlt className="w-4 h-4" />
-              Мои ответы
+              <span className="inline-block"><FaFileAlt className="w-4 h-4" /></span>
+              <span>Мои ответы</span>
             </button>
             <Link href="/tests/create">
               <button
+                type="button"
                 className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium border border-primary-600 text-primary-600 rounded-md px-4 py-2 hover:bg-primary-50 transition shadow"
               >
                 <FaChartLine className="w-4 h-4" />
@@ -697,6 +699,7 @@ export default function TestStartPage() {
             </Link>
             <Link href="/">
               <button
+                type="button"
                 className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium border border-neutral-300 text-neutral-700 rounded-md px-4 py-2 hover:bg-neutral-100 transition shadow"
               >
                 <FaArrowLeft className="w-4 h-4" />
