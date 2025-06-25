@@ -431,10 +431,13 @@ export default function TestStartPage() {
       const results = calculateResults();
       const testResultsData = {
         testId: params.id,
-        results,
+        results: {
+          ...results,
+          questions
+        },
         answers: userAnswers,
         timestamp: new Date().toISOString(),
-        userClosed: false // Добавляем флаг, показывающий, что пользователь не закрывал результаты
+        userClosed: false
       };
       
       localStorage.setItem(TEST_RESULTS_STORAGE_KEY, JSON.stringify(testResultsData));
@@ -526,6 +529,16 @@ export default function TestStartPage() {
       y: direction < 0 ? '100%' : '-100%',
       opacity: 0
     })
+  };
+  
+  // Внутри компонента TestStartPage:
+  const handleClearAndRestart = () => {
+    localStorage.removeItem('lastTestResults');
+    window.location.href = `/tests/${params.id}/start`;
+  };
+  const handleClearAndCreate = () => {
+    localStorage.removeItem('lastTestResults');
+    window.location.href = '/tests/create';
   };
   
   // Компонент загрузки
@@ -689,15 +702,22 @@ export default function TestStartPage() {
                 <span>Мои ответы</span>
               </button>
             </Link>
-            <Link href="/tests/create">
-              <button
-                type="button"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium border border-primary-600 text-primary-600 rounded-md px-4 py-2 hover:bg-primary-50 transition shadow"
-              >
-                <FaChartLine className="w-4 h-4" />
-                Создать новый тест
-              </button>
-            </Link>
+            <button
+              type="button"
+              onClick={handleClearAndCreate}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium border border-primary-600 text-primary-600 rounded-md px-4 py-2 hover:bg-primary-50 transition shadow"
+            >
+              <FaChartLine className="w-4 h-4" />
+              Создать новый тест
+            </button>
+            <button
+              type="button"
+              onClick={handleClearAndRestart}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 font-medium border border-yellow-400 text-yellow-700 rounded-md px-4 py-2 hover:bg-yellow-50 transition shadow"
+            >
+              <FaRedoAlt className="w-4 h-4" />
+              Пройти тест заново
+            </button>
             <Link href="/">
               <button
                 type="button"
@@ -858,10 +878,11 @@ export default function TestStartPage() {
                   questions[currentIndex].options.map((option) => {
                     const userAnswerId = getUserAnswer(questions[currentIndex].id);
                     const hasUserAnswered = hasAnswered(questions[currentIndex].id);
+                    const isSelected = userAnswerId === option.id;
                     return (
                       <button
                         key={option.id}
-                        className={`w-full p-4 rounded-lg text-left transition-all border border-neutral-200 bg-white hover:border-neutral-300`}
+                        className={`w-full p-4 rounded-lg text-left transition-all border border-neutral-200 bg-white hover:border-neutral-300 ${isSelected ? 'bg-neutral-100' : ''}`}
                         onClick={() => handleSelectOption(questions[currentIndex].id, option.id, option.isCorrect)}
                         disabled={hasUserAnswered}
                       >
