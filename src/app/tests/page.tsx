@@ -200,7 +200,7 @@ export default function TestsPage() {
                 <div className="card hover:shadow-md transition-shadow cursor-pointer">
                   <h3 className="text-lg font-semibold mb-2">{test.title}</h3>
                   <p className="text-sm text-neutral-600 mb-4 line-clamp-2">
-                    {test.content ? test.content.substring(0, 150) + '...' : 'Нет описания'}
+                    {test.description ? test.description.substring(0, 150) + (test.description.length > 150 ? '...' : '') : 'Нет описания'}
                   </p>
                   
                   <div className="flex flex-wrap justify-between text-xs text-neutral-500">
