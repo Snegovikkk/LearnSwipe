@@ -331,60 +331,6 @@ export default function ProfileSettingsPage() {
                 </div>
               </div>
 
-              <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200 mb-6 mt-8">
-                <h2 className="text-xl font-semibold mb-6 flex items-center">
-                  <FaLock className="mr-2 text-primary-500" /> Смена пароля
-                </h2>
-                <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
-                  <div>
-                    <label htmlFor="old-password" className="block text-sm font-medium text-neutral-600 mb-1">Старый пароль</label>
-                    <input
-                      id="old-password"
-                      type="password"
-                      value={oldPassword}
-                      onChange={e => setOldPassword(e.target.value)}
-                      className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-200 focus:border-primary-300 transition-all"
-                      placeholder="Введите текущий пароль"
-                      autoComplete="current-password"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="new-password" className="block text-sm font-medium text-neutral-600 mb-1">Новый пароль</label>
-                    <input
-                      id="new-password"
-                      type="password"
-                      value={newPassword}
-                      onChange={e => setNewPassword(e.target.value)}
-                      className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-200 focus:border-primary-300 transition-all"
-                      placeholder="Введите новый пароль"
-                      autoComplete="new-password"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="confirm-password" className="block text-sm font-medium text-neutral-600 mb-1">Повторите новый пароль</label>
-                    <input
-                      id="confirm-password"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={e => setConfirmPassword(e.target.value)}
-                      className="w-full px-4 py-3 border border-neutral-200 rounded-lg focus:ring-2 focus:ring-primary-200 focus:border-primary-300 transition-all"
-                      placeholder="Повторите новый пароль"
-                      autoComplete="new-password"
-                    />
-                  </div>
-                  {passwordMessage && (
-                    <div className={`text-sm ${passwordMessage.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>{passwordMessage.text}</div>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={isChangingPassword}
-                    className="mt-2 px-6 py-2 rounded-lg text-white font-medium bg-primary-600 hover:bg-primary-700 transition disabled:opacity-50"
-                  >
-                    {isChangingPassword ? 'Сохраняем...' : 'Сменить пароль'}
-                  </button>
-                </form>
-              </div>
-
               <div className="mt-8">
                 <button 
                   className="btn-secondary w-full py-3 rounded-lg"
