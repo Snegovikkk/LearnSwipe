@@ -11,8 +11,13 @@ const inter = Inter({ subsets: ['latin', 'cyrillic'] });
 // поэтому мы оставим ее статичной или будем управлять через useEffect.
 // Для простоты пока оставим как есть.
 export const metadata: Metadata = {
-  title: 'Lume - Платформа для создания и прохождения тестов',
-  description: 'Создавайте тесты с использованием ИИ, делитесь ими и улучшайте свои знания',
+  title: 'Lume — генерация и прохождение тестов онлайн',
+  description: 'Lume — платформа для создания и прохождения тестов с помощью искусственного интеллекта. Быстро, удобно, эффективно. Подписка Lume+ для расширенных возможностей.',
+  icons: [
+    { rel: 'icon', url: '/favicon.png', type: 'image/png' },
+    { rel: 'icon', url: '/favicon.ico', type: 'image/x-icon' },
+    { rel: 'shortcut icon', url: '/favicon.ico', type: 'image/x-icon' },
+  ],
 };
 
 export default function RootLayout({
