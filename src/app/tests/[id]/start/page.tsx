@@ -295,16 +295,27 @@ export default function TestStartPage() {
   
   // Обработчик выбора варианта ответа
   const handleSelectOption = (questionId: string, optionId: string, isCorrect: boolean) => {
-    // Если уже есть ответ, игнорируем
-    if (hasAnswered(questionId)) return;
-    
-    // Добавляем ответ
+    const userAnswer = userAnswers.find(answer => answer.questionId === questionId);
+    // Если уже выбран этот вариант — отменяем выбор
+    if (userAnswer && userAnswer.answerId === optionId) {
+      setUserAnswers(prev => prev.filter(answer => answer.questionId !== questionId));
+      return;
+    }
+    // Если выбран другой вариант — меняем ответ
+    if (userAnswer) {
+      setUserAnswers(prev => prev.map(answer =>
+        answer.questionId === questionId
+          ? { questionId, answerId: optionId, isCorrect }
+          : answer
+      ));
+      return;
+    }
+    // Если ещё не было ответа — добавляем
     setUserAnswers(prev => [...prev, {
       questionId,
       answerId: optionId,
       isCorrect
     }]);
-    
     // Вибрация при ответе
     try {
       if ('vibrate' in navigator) {
@@ -876,29 +887,28 @@ export default function TestStartPage() {
               <div className="space-y-3 mb-5">
                 {Array.isArray(questions[currentIndex].options) && questions[currentIndex].options.length > 0 ? (
                   questions[currentIndex].options.map((option) => {
-                    const userAnswerId = getUserAnswer(questions[currentIndex].id);
-                    const hasUserAnswered = hasAnswered(questions[currentIndex].id);
-                    const isSelected = userAnswerId === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        className={`w-full p-4 rounded-lg text-left transition-all border bg-white
-                          ${isSelected ? 'bg-primary-50 border-2 border-primary-600 font-semibold text-primary-700 shadow' : 'border-neutral-200 hover:bg-neutral-50'}
-                        `}
-                        onClick={() => handleSelectOption(questions[currentIndex].id, option.id, option.isCorrect)}
-                        disabled={hasUserAnswered}
-                      >
-                        <div className="flex items-center">
-                          <span className={`flex-shrink-0 rounded-full w-6 h-6 flex items-center justify-center border text-sm font-medium mr-3
-                            ${isSelected ? 'border-primary-600 bg-primary-100 text-primary-700' : 'border-neutral-300 bg-white text-neutral-700'}`}
-                          >
-                            {option.id.toUpperCase()}
-                          </span>
-                          <span>{option.text}</span>
-                        </div>
-                      </button>
-                    );
-                  })
+                      const userAnswerId = getUserAnswer(questions[currentIndex].id);
+                      const hasUserAnswered = hasAnswered(questions[currentIndex].id);
+                      const isSelected = userAnswerId === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          className={`w-full p-4 rounded-lg text-left transition-all border bg-white
+                            ${isSelected ? 'bg-primary-50 border-2 border-primary-600 font-semibold text-primary-700 shadow' : 'border-neutral-200 hover:bg-neutral-50'}
+                          `}
+                          onClick={() => handleSelectOption(questions[currentIndex].id, option.id, option.isCorrect)}
+                        >
+                          <div className="flex items-center">
+                            <span className={`flex-shrink-0 rounded-full w-6 h-6 flex items-center justify-center border text-sm font-medium mr-3
+                              ${isSelected ? 'border-primary-600 bg-primary-100 text-primary-700' : 'border-neutral-300 bg-white text-neutral-700'}`}
+                            >
+                              {option.id.toUpperCase()}
+                            </span>
+                            <span>{option.text}</span>
+                          </div>
+                        </button>
+                      );
+                    })
                 ) : (
                   <p className="text-red-500">Ошибка: Варианты ответа отсутствуют для этого вопроса</p>
                 )}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FaArrowLeft, FaCheck, FaBell, FaEye, FaLock, FaUser, FaCog } from 'react-icons/fa';
+import { FaArrowLeft, FaCheck, FaBell, FaEye, FaLock, FaUser, FaCog, FaCreditCard } from 'react-icons/fa';
 import useAuth from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -255,6 +255,21 @@ export default function ProfileSettingsPage() {
                     </button>
                   </div>
                 </form>
+              </div>
+              
+              <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200 mb-6">
+                <h2 className="text-xl font-semibold mb-4 flex items-center">
+                  <FaCreditCard className="mr-2 text-primary-500" /> Подписка Lume+
+                </h2>
+                <p className="text-neutral-600 mb-4 text-sm">
+                  Управляйте своей подпиской, просматривайте историю платежей и расширяйте свои возможности.
+                </p>
+                <button
+                  onClick={() => router.push('/profile/subscription')}
+                  className="btn-secondary px-6 py-3 rounded-lg w-full"
+                >
+                  Перейти к управлению подпиской
+                </button>
               </div>
               
               <div className="bg-white shadow-sm rounded-xl p-6 border border-neutral-200 mb-6">

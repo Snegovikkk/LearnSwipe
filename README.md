@@ -5,7 +5,7 @@
 ## Деплой
 
 Приложение развернуто на Vercel и доступно по адресу [lume.vercel.app](https://lume.vercel.app).
-Последняя версия: 1.0.1 (исправлены ошибки типизации)
+Последняя версия: 1.2
 
 ## Технологии
 
@@ -54,7 +54,7 @@ cp .env.local.example .env.local
 ```
 
 4. Заполните следующие переменные в `.env.local`:
-```
+```bash
 NEXT_PUBLIC_SUPABASE_URL=ваш_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=ваш_supabase_anon_key
 DEEPSEEK_API_KEY=ваш_deepseek_api_key

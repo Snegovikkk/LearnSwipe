@@ -197,7 +197,7 @@ export default function ProfilePage() {
         
         <div className="text-center mt-10 text-sm text-neutral-500">
           <p>Дата регистрации: {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Недоступно'}</p>
-          <p className="mt-1">Lume v1.0</p>
+          <p className="mt-1">Lume v1.2</p>
         </div>
       </div>
     </ProtectedRoute>
