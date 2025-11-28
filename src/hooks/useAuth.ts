@@ -61,7 +61,10 @@ export default function useAuth() {
         email,
         password,
         options: {
-          data: { name }
+          data: { name },
+          emailRedirectTo: typeof window !== 'undefined' 
+            ? `${window.location.origin}/auth/callback?next=/auth/confirmation`
+            : undefined
         }
       });
 

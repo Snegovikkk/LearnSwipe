@@ -13,14 +13,21 @@ export default function ConfirmationPage() {
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState('');
 
-  // Проверяем, есть ли токен в URL (для автоматического подтверждения по ссылке из письма)
+  // Проверяем, есть ли токен в URL или параметр verified (для автоматического подтверждения по ссылке из письма)
   useEffect(() => {
-    const token = searchParams.get('token');
+    const verified = searchParams.get('verified');
+    const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
     
-    if (token) {
-      handleVerification(token);
+    if (verified === 'true') {
+      setVerified(true);
+      setTimeout(() => {
+        router.push('/');
+      }, 3000);
+    } else if (error) {
+      setError(errorDescription || 'Не удалось подтвердить email. Ссылка могла истечь.');
     }
-  }, [searchParams]);
+  }, [searchParams, router]);
 
   const handleVerification = async (token: string) => {
     try {
