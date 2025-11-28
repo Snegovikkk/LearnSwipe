@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import useAuth from '@/hooks/useAuth';
@@ -15,6 +15,13 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  
+  // Отслеживаем изменения authError и устанавливаем локальную ошибку
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,11 +52,14 @@ export default function SignupPage() {
       }, 2000);
     } else {
       // Если signUp вернул null, значит была ошибка
-      if (authError) {
-        setError(authError);
-      } else {
-        setError('Не удалось создать аккаунт. Проверьте данные и попробуйте снова.');
-      }
+      // Подождем немного, чтобы authError обновился
+      setTimeout(() => {
+        if (authError) {
+          setError(authError);
+        } else {
+          setError('Не удалось создать аккаунт. Проверьте данные и попробуйте снова.');
+        }
+      }, 100);
     }
   };
   
