@@ -35,11 +35,14 @@ export default function LoginPage() {
       router.refresh();
     } else {
       // Если signIn вернул null, значит была ошибка
-      // authError уже установлен в useAuth и будет отображен через useEffect
-      // Но на случай, если authError еще не обновился, показываем общее сообщение
-      if (!authError) {
-        setError('Неверный email или пароль. Проверьте данные и попробуйте снова.');
-      }
+      // Подождем немного, чтобы authError обновился
+      setTimeout(() => {
+        if (authError) {
+          setError(authError);
+        } else {
+          setError('Неверный email или пароль. Проверьте данные и попробуйте снова.');
+        }
+      }, 100);
     }
   };
   
