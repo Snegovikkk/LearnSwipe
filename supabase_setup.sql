@@ -17,6 +17,12 @@ CREATE TABLE IF NOT EXISTS tests (
 -- Политики безопасности для таблицы tests
 ALTER TABLE tests ENABLE ROW LEVEL SECURITY;
 
+-- Удаляем существующие политики, если они есть
+DROP POLICY IF EXISTS "Tests are viewable by everyone" ON tests;
+DROP POLICY IF EXISTS "Users can create their own tests" ON tests;
+DROP POLICY IF EXISTS "Users can update their own tests" ON tests;
+DROP POLICY IF EXISTS "Users can delete their own tests" ON tests;
+
 -- Все могут просматривать тесты
 CREATE POLICY "Tests are viewable by everyone" 
   ON tests FOR SELECT 
@@ -49,6 +55,10 @@ CREATE TABLE IF NOT EXISTS test_results (
 
 -- Политики безопасности для таблицы test_results
 ALTER TABLE test_results ENABLE ROW LEVEL SECURITY;
+
+-- Удаляем существующие политики, если они есть
+DROP POLICY IF EXISTS "Users can view their own results" ON test_results;
+DROP POLICY IF EXISTS "Users can create test results" ON test_results;
 
 -- Пользователи могут просматривать свои результаты и владельцы тестов могут видеть результаты по своим тестам
 CREATE POLICY "Users can view their own results" 
@@ -83,6 +93,11 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- Политики безопасности для таблицы notifications
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
+-- Удаляем существующие политики, если они есть
+DROP POLICY IF EXISTS "Users can view their own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can create their own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can update their own notifications" ON notifications;
+
 -- Пользователи могут просматривать только свои уведомления
 CREATE POLICY "Users can view their own notifications" 
   ON notifications FOR SELECT 
@@ -114,6 +129,11 @@ CREATE TABLE IF NOT EXISTS notification_settings (
 
 -- Политики безопасности для таблицы notification_settings
 ALTER TABLE notification_settings ENABLE ROW LEVEL SECURITY;
+
+-- Удаляем существующие политики, если они есть
+DROP POLICY IF EXISTS "Users can view their own notification settings" ON notification_settings;
+DROP POLICY IF EXISTS "Users can create their own notification settings" ON notification_settings;
+DROP POLICY IF EXISTS "Users can update their own notification settings" ON notification_settings;
 
 -- Пользователи могут просматривать только свои настройки
 CREATE POLICY "Users can view their own notification settings" 
