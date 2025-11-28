@@ -18,17 +18,12 @@
 ```
 
 **Текст письма (Body):**
-```
-Добро пожаловать на Lume!
+```html
+<h2>Confirm your signup</h2>
 
-Для завершения регистрации перейдите по ссылке ниже:
+<p>Follow this link to confirm your user:</p>
 
-{{ .ConfirmationURL }}
-
-Если вы не регистрировались на нашем сайте, просто проигнорируйте это письмо.
-
-С уважением,
-Команда Lume
+<p><a href="{{ .ConfirmationURL }}">Confirm your mail</a></p>
 ```
 
 ### Шаг 3: Доступные переменные
@@ -48,16 +43,13 @@
 
 ## Примеры текстов
 
-### Вариант 1: Простой
-```
-Подтвердите регистрацию
+### Вариант 1: Простой (как в вашем примере)
+```html
+<h2>Confirm your signup</h2>
 
-Перейдите по ссылке для подтверждения вашего email:
+<p>Follow this link to confirm your user:</p>
 
-{{ .ConfirmationURL }}
-
-С уважением,
-Команда Lume
+<p><a href="{{ .ConfirmationURL }}">Confirm your mail</a></p>
 ```
 
 ### Вариант 2: С подробностями
