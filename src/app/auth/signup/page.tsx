@@ -30,18 +30,26 @@ export default function SignupPage() {
       return;
     }
     
-    try {
-      const data = await signUp(email, password, name);
-      
-      if (data) {
-        setSuccess(true);
-        // После успешной регистрации перенаправляем на страницу подтверждения
-        setTimeout(() => {
-          router.push('/auth/confirmation');
-        }, 2000);
+    if (password.length < 6) {
+      setError('Пароль должен содержать минимум 6 символов');
+      return;
+    }
+    
+    const data = await signUp(email, password, name);
+    
+    if (data && data.user) {
+      setSuccess(true);
+      // После успешной регистрации перенаправляем на страницу подтверждения
+      setTimeout(() => {
+        router.push('/auth/confirmation');
+      }, 2000);
+    } else {
+      // Если signUp вернул null, значит была ошибка
+      if (authError) {
+        setError(authError);
+      } else {
+        setError('Не удалось создать аккаунт. Проверьте данные и попробуйте снова.');
       }
-    } catch (err) {
-      console.error("Ошибка регистрации:", err);
     }
   };
   
@@ -129,7 +137,7 @@ export default function SignupPage() {
             </div>
 
             {(error || authError) && (
-              <div className="text-red-500 text-sm">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
                 {error || authError}
               </div>
             )}

@@ -46,6 +46,17 @@ export default function useAuth() {
     setLoading(true);
     setError(null);
     try {
+      // Проверяем, что Supabase настроен
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        const configError = "Ошибка конфигурации: Supabase не настроен. Обратитесь к администратору.";
+        setError(configError);
+        console.error("Supabase не настроен:", { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey });
+        return null;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -54,11 +65,28 @@ export default function useAuth() {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        let errorMessage = translateError(error.message || "Ошибка при регистрации");
+        
+        // Дополнительные переводы для регистрации
+        if (error.message.includes('User already registered')) {
+          errorMessage = "Пользователь с таким email уже зарегистрирован. Попробуйте войти.";
+        } else if (error.message.includes('Password should be at least')) {
+          errorMessage = "Пароль должен содержать минимум 6 символов.";
+        } else if (error.message.includes('Invalid email')) {
+          errorMessage = "Неверный формат email. Проверьте адрес электронной почты.";
+        }
+        
+        setError(errorMessage);
+        console.error("Ошибка при регистрации:", error);
+        return null;
+      }
+      
       return data;
     } catch (error: any) {
       console.error("Ошибка при регистрации:", error);
-      setError(error.message || "Ошибка при регистрации");
+      const errorMessage = translateError(error?.message || "Ошибка при регистрации");
+      setError(errorMessage);
       return null;
     } finally {
       setLoading(false);
