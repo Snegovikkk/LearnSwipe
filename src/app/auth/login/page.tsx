@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import useAuth from '@/hooks/useAuth';
@@ -13,6 +13,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   
+  // Отслеживаем изменения authError и устанавливаем локальную ошибку
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -22,13 +29,17 @@ export default function LoginPage() {
       return;
     }
     
-    try {
-      const data = await signIn(email, password);
-      if (data) {
-        router.push('/profile');
+    const data = await signIn(email, password);
+    if (data && data.user) {
+      router.push('/profile');
+      router.refresh();
+    } else {
+      // Если signIn вернул null, значит была ошибка
+      // authError уже установлен в useAuth и будет отображен через useEffect
+      // Но на случай, если authError еще не обновился, показываем общее сообщение
+      if (!authError) {
+        setError('Неверный email или пароль. Проверьте данные и попробуйте снова.');
       }
-    } catch (err) {
-      console.error("Ошибка входа:", err);
     }
   };
   
@@ -93,14 +104,14 @@ export default function LoginPage() {
             </div>
 
             <div className="text-sm">
-              <Link href="/auth/forgot-password" className="font-medium text-primary-600 hover:text-primary-500">
+              <Link href="/auth/reset-password" className="font-medium text-primary-600 hover:text-primary-500">
                 Забыли пароль?
               </Link>
             </div>
           </div>
 
           {(error || authError) && (
-            <div className="text-red-500 text-sm">
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
               {error || authError}
             </div>
           )}
@@ -118,4 +129,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-} 
+}

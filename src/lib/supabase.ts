@@ -4,6 +4,11 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+// Проверяем, что переменные окружения настроены
+if (!supabaseUrl || !supabaseKey) {
+  console.error('⚠️ Supabase не настроен! Проверьте переменные окружения NEXT_PUBLIC_SUPABASE_URL и NEXT_PUBLIC_SUPABASE_ANON_KEY');
+}
+
 // Создаем клиент Supabase для взаимодействия с API
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {

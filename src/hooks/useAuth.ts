@@ -65,21 +65,63 @@ export default function useAuth() {
     }
   };
 
+  // Функция для перевода ошибок Supabase на русский
+  const translateError = (errorMessage: string): string => {
+    const errorLower = errorMessage.toLowerCase();
+    if (errorLower.includes('invalid login credentials') || errorLower.includes('invalid credentials')) {
+      return 'Неверный email или пароль. Проверьте данные и попробуйте снова.';
+    }
+    if (errorLower.includes('email not confirmed')) {
+      return 'Email не подтвержден. Проверьте почту и подтвердите регистрацию.';
+    }
+    if (errorLower.includes('too many requests')) {
+      return 'Слишком много попыток входа. Попробуйте позже.';
+    }
+    if (errorLower.includes('user not found')) {
+      return 'Пользователь с таким email не найден.';
+    }
+    return errorMessage;
+  };
+
   // Вход пользователя
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     setError(null);
     try {
+      // Проверяем, что Supabase настроен
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseKey) {
+        const configError = 'Supabase не настроен. Обратитесь к администратору.';
+        setError(configError);
+        console.error("Ошибка конфигурации Supabase:", { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey });
+        return null;
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
 
-      if (error) throw error;
+      if (error) {
+        const errorMessage = translateError(error.message || "Ошибка при входе");
+        setError(errorMessage);
+        console.error("Ошибка при входе:", error);
+        return null;
+      }
+      
+      if (!data || !data.user) {
+        const errorMessage = 'Не удалось получить данные пользователя. Попробуйте снова.';
+        setError(errorMessage);
+        return null;
+      }
+      
       return data;
     } catch (error: any) {
       console.error("Ошибка при входе:", error);
-      setError(error.message || "Ошибка при входе");
+      const errorMessage = translateError(error?.message || "Ошибка при входе");
+      setError(errorMessage);
       return null;
     } finally {
       setLoading(false);
