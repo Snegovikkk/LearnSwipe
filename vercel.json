@@ -1,6 +1,7 @@
 {
   "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://qegmlgtamtmwpmidyxmz.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_URL": "https://ngkmcwyekrigjnfsjsjr.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_QCXPjWCA6GnYpJvZkJ3GNw_0iZ9zxaq",
     "NEXT_PUBLIC_API_URL": "https://api.lume-learning.ru",
     "NEXT_PUBLIC_DEEP_SEEK_ENABLED": "false",
     "NEXT_PUBLIC_WEBHOOK_URL": "https://api.lume-learning.ru/api/notifications/send",
